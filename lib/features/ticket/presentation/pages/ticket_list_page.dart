@@ -9,7 +9,7 @@ import './ticket_detail_page.dart';
 import './create_ticket_page.dart';
 
 class TicketListPage extends ConsumerStatefulWidget {
-  const TicketListPage({Key? key}) : super(key: key);
+  const TicketListPage({super.key});
 
   @override
   ConsumerState<TicketListPage> createState() => _TicketListPageState();

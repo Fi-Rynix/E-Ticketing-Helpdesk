@@ -5,7 +5,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
@@ -30,7 +30,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 
   void _handleLogout() async {
-    await ref.read(logoutProvider);
+    ref.read(logoutProvider);
     Navigator.of(context).pushReplacementNamed('/login');
   }
 

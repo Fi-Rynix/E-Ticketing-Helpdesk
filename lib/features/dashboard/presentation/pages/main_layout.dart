@@ -7,7 +7,7 @@ import '../../../notification/presentation/pages/notification_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
-  const MainLayout({Key? key}) : super(key: key);
+  const MainLayout({super.key});
 
   @override
   ConsumerState<MainLayout> createState() => _MainLayoutState();

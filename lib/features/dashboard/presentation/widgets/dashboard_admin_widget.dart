@@ -5,7 +5,7 @@ import '../providers/dashboard_provider.dart';
 import '../../data/models/dashboard_model.dart';
 
 class DashboardAdminWidget extends ConsumerWidget {
-  const DashboardAdminWidget({Key? key}) : super(key: key);
+  const DashboardAdminWidget({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

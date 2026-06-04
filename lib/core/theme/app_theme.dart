@@ -56,8 +56,6 @@ class AppTheme {
       onSurface: textPrimaryLight,
       error: errorColor,
       onError: Colors.white,
-      background: backgroundLight,
-      onBackground: textPrimaryLight,
     ),
 
     // AppBar - Clean, minimal
@@ -267,8 +265,6 @@ class AppTheme {
       onSurface: textPrimaryDark,
       error: errorColor,
       onError: Colors.white,
-      background: backgroundDark,
-      onBackground: textPrimaryDark,
     ),
 
     appBarTheme: const AppBarTheme(

@@ -6,7 +6,7 @@ import 'dart:io';
 import '../../../../core/services/shared_preferences_service.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
-  const CameraScreen({Key? key}) : super(key: key);
+  const CameraScreen({super.key});
 
   @override
   ConsumerState<CameraScreen> createState() => _CameraScreenState();

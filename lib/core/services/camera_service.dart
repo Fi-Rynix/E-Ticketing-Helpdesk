@@ -1,6 +1,5 @@
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 
 class CameraService {
   static final CameraService _instance = CameraService._internal();

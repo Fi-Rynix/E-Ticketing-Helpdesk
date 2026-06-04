@@ -6,7 +6,7 @@ import '../widgets/dashboard_user_widget.dart';
 import '../widgets/dashboard_admin_widget.dart';
 
 class DashboardPage extends ConsumerWidget {
-  const DashboardPage({Key? key}) : super(key: key);
+  const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

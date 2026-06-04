@@ -9,7 +9,7 @@ import '../providers/ticket_provider.dart';
 class TicketDetailPage extends ConsumerStatefulWidget {
   final String ticketId;
 
-  const TicketDetailPage({Key? key, required this.ticketId}) : super(key: key);
+  const TicketDetailPage({super.key, required this.ticketId});
 
   @override
   ConsumerState<TicketDetailPage> createState() => _TicketDetailPageState();
@@ -184,7 +184,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                           final technicians = snapshot.data!;
 
                           return DropdownButtonFormField<String>(
-                            value: ticket.assignedTo,
+                            initialValue: ticket.assignedTo,
                             isExpanded: true,
                             style: TextStyle(
                               color: Theme.of(context).brightness == Brightness.dark
@@ -252,7 +252,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
 
                       // Change Status
                       DropdownButtonFormField<String>(
-                        value: ticket.status,
+                        initialValue: ticket.status,
                         isExpanded: true,
                         style: TextStyle(
                           color: Theme.of(context).brightness == Brightness.dark
@@ -511,7 +511,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                       child: Text(
                         index == flow.length - 1 ? '✓' : '${index + 1}',
                         style: TextStyle(
-                          color: isCompleted || isCurrent ? Colors.white : (isDark ? Colors.grey[400]! : Colors.grey!),
+                          color: isCompleted || isCurrent ? Colors.white : (isDark ? Colors.grey[400]! : Colors.grey),
                           fontWeight: FontWeight.bold,
                           fontSize: 14,
                         ),

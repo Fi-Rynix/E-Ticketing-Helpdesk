@@ -4,7 +4,7 @@ import '../../../ticket/presentation/pages/ticket_detail_page.dart';
 import '../providers/notification_provider.dart';
 
 class NotificationPage extends ConsumerWidget {
-  const NotificationPage({Key? key}) : super(key: key);
+  const NotificationPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

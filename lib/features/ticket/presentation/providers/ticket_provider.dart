@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/models/ticket_model.dart';
 import '../../data/repositories/ticket_repository.dart';
-import '../../data/repositories/technician_repository.dart';
 
 final ticketRepositoryProvider = Provider((ref) => TicketRepository());
 

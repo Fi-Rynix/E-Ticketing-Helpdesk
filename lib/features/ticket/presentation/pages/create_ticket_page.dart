@@ -9,7 +9,7 @@ import '../providers/ticket_provider.dart';
 import 'camera_screen.dart';
 
 class CreateTicketPage extends ConsumerStatefulWidget {
-  const CreateTicketPage({Key? key}) : super(key: key);
+  const CreateTicketPage({super.key});
 
   @override
   ConsumerState<CreateTicketPage> createState() => _CreateTicketPageState();
