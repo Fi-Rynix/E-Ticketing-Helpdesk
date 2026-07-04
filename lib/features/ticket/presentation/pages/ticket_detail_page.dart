@@ -4,10 +4,11 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/ticket_model.dart';
 import '../../data/models/comment_model.dart';
 import '../../data/repositories/ticket_repository.dart';
+import '../../data/repositories/comment_repository.dart';
+import '../../data/repositories/helpdesk_repository.dart';
 import '../providers/ticket_provider.dart';
 import '../providers/comment_provider.dart';
 import '../providers/helpdesk_provider.dart';
-import '../../data/repositories/helpdesk_repository.dart';
 
 class TicketDetailPage extends ConsumerStatefulWidget {
   final int ticketId;
@@ -20,7 +21,6 @@ class TicketDetailPage extends ConsumerStatefulWidget {
 
 class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   final _commentController = TextEditingController();
-  
   String? _creatorName;
   String? _helpdeskName;
 
@@ -31,7 +31,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   }
 
   void _loadNames() async {
-    final ticketRepo = ref.read(ticketRepositoryProvider);
+    final ticketRepo = TicketRepository();
     final ticket = await ticketRepo.getTicketById(widget.ticketId);
     if (ticket != null && mounted) {
       final creatorName = await ticketRepo.getUsernameById(ticket.idUser);
@@ -83,128 +83,78 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status badge
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '#${ticket.idTicket}',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    ),
+                    Text('#${ticket.idTicket}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     _StatusBadge(status: ticket.status),
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // Title
-                Text(
-                  ticket.title,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
+                Text(ticket.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
-
-                // Description
-                _SectionCard(
-                  title: 'Description',
-                  child: Text(ticket.description),
-                ),
+                _SectionCard(title: 'Description', child: Text(ticket.description)),
                 const SizedBox(height: 16),
-
-                // Info rows
-                _InfoRow(
-                  label: 'Created by',
-                  value: _creatorName ?? 'Loading...',
-                ),
-                _InfoRow(
-                  label: 'Created at',
-                  value: _formatDate(ticket.createdAt),
-                ),
+                _InfoRow(label: 'Created by', value: _creatorName ?? 'Loading...'),
+                _InfoRow(label: 'Created at', value: _formatDate(ticket.createdAt)),
                 if (ticket.idHelpdesk != null)
-                  _InfoRow(
-                    label: 'Assigned to',
-                    value: _helpdeskName ?? 'Loading...',
-                  ),
-
+                  _InfoRow(label: 'Assigned to', value: _helpdeskName ?? 'Loading...'),
                 const SizedBox(height: 16),
 
-                // Admin section
+                // Role-based sections
                 if (currentUser?.role.name == 'admin') ...[
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Admin Actions',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  const Divider(), const SizedBox(height: 8),
+                  const Text('Admin Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   _AdminActionsSection(ticket: ticket),
                   const SizedBox(height: 16),
                 ],
 
-                // Helpdesk section
                 if (currentUser?.role.name == 'helpdesk') ...[
-                  const Divider(),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Helpdesk Actions',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  const Divider(), const SizedBox(height: 8),
+                  const Text('Helpdesk Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   _HelpdeskActionsSection(ticket: ticket),
                   const SizedBox(height: 16),
                 ],
 
-                // User cancel/edit section
                 if (currentUser?.role.name == 'user' && ticket.status == TicketStatus.open) ...[
-                  const Divider(),
-                  const SizedBox(height: 8),
+                  const Divider(), const SizedBox(height: 8),
                   _UserActionsSection(ticket: ticket),
                   const SizedBox(height: 16),
                 ],
 
-                // Status tracking
-                const Divider(),
-                const SizedBox(height: 8),
-                const Text(
-                  'Tracking',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                const Divider(), const SizedBox(height: 8),
+                const Text('Tracking', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 _StatusTracking(ticket: ticket),
-
                 const SizedBox(height: 16),
 
-                // Comments section
-                const Divider(),
-                const SizedBox(height: 8),
-                const Text(
-                  'Comments',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                const Divider(), const SizedBox(height: 8),
+                const Text('Comments', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
 
                 commentsAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, s) => Text('Error loading comments: $e'),
+                  error: (e, s) => Text('Error: $e'),
                   data: (comments) {
-                    if (comments.isEmpty) {
-                      return const Text('No comments yet');
-                    }
+                    if (comments.isEmpty) return const Text('No comments yet');
                     return Column(
-                      children: comments.map((c) => _CommentCard(comment: c, currentUserId: currentUser?.idUser)).toList(),
+                      children: comments.map((c) => _CommentCard(
+                        comment: c,
+                        currentUserId: currentUser?.idUser,
+                        onEdit: () => _showEditCommentDialog(context, c),
+                        onDelete: () => _showDeleteConfirmDialog(context, c),
+                      )).toList(),
                     );
                   },
                 ),
 
                 const SizedBox(height: 16),
-
-                // Add comment
                 TextField(
                   controller: _commentController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a comment...',
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(hintText: 'Add a comment...', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 8),
                 SizedBox(
@@ -214,7 +164,6 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                     child: const Text('Post Comment'),
                   ),
                 ),
-
                 const SizedBox(height: 32),
               ],
             ),
@@ -226,27 +175,70 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
 
   void _addComment(int idTicket, int? idUser) async {
     if (_commentController.text.isEmpty || idUser == null) return;
-
-    final commentRepo = ref.read(commentRepositoryProvider);
-    await commentRepo.addComment(
-      idTicket: idTicket,
-      idUser: idUser,
-      message: _commentController.text,
-    );
-
+    final commentRepo = CommentRepository();
+    await commentRepo.addComment(idTicket: idTicket, idUser: idUser, message: _commentController.text);
     _commentController.clear();
     ref.invalidate(ticketCommentsProvider(idTicket));
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  void _showEditCommentDialog(BuildContext context, Comment comment) {
+    final editController = TextEditingController(text: comment.message);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Comment'),
+        content: TextField(controller: editController, maxLines: 3, decoration: const InputDecoration(hintText: 'Edit your comment...', border: OutlineInputBorder())),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (editController.text.isNotEmpty) {
+                final currentUser = ref.read(currentUserProvider);
+                final commentRepo = CommentRepository();
+                await commentRepo.editComment(idComment: comment.idComment, idUser: currentUser!.idUser, message: editController.text);
+                ref.invalidate(ticketCommentsProvider(widget.ticketId));
+                if (ctx.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
+
+  void _showDeleteConfirmDialog(BuildContext context, Comment comment) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Comment'),
+        content: const Text('Are you sure you want to delete this comment?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              final currentUser = ref.read(currentUserProvider);
+              final commentRepo = CommentRepository();
+              await commentRepo.deleteComment(idComment: comment.idComment, idUser: currentUser!.idUser);
+              ref.invalidate(ticketCommentsProvider(widget.ticketId));
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
 }
+
+// ================ Helper Widgets ================
 
 class _SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
-
   const _SectionCard({required this.title, required this.child});
 
   @override
@@ -254,18 +246,12 @@ class _SectionCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          child,
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        child,
+      ]),
     );
   }
 }
@@ -273,7 +259,6 @@ class _SectionCard extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
-
   const _InfoRow({required this.label, required this.value});
 
   @override
@@ -293,25 +278,14 @@ class _InfoRow extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final TicketStatus status;
-
   const _StatusBadge({required this.status});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: _getColor(),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        status.label,
-        style: const TextStyle(
-          fontSize: 12,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      decoration: BoxDecoration(color: _getColor(), borderRadius: BorderRadius.circular(6)),
+      child: Text(status.label, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -329,18 +303,11 @@ class _StatusBadge extends StatelessWidget {
 
 class _StatusTracking extends StatelessWidget {
   final Ticket ticket;
-
   const _StatusTracking({required this.ticket});
 
   @override
   Widget build(BuildContext context) {
-    final List<String> flow;
-    if (ticket.status == TicketStatus.cancelled) {
-      flow = ['open', 'cancelled'];
-    } else {
-      flow = ['open', 'assigned', 'in_progress', 'done'];
-    }
-
+    final flow = ticket.status == TicketStatus.cancelled ? ['open', 'cancelled'] : ['open', 'assigned', 'in_progress', 'done'];
     final currentIndex = flow.indexOf(ticket.status.value);
     const activeColor = Color(0xFF000072);
 
@@ -367,18 +334,12 @@ class _StatusTracking extends StatelessWidget {
                     child: Center(
                       child: Text(
                         index == flow.length - 1 ? '✓' : '${index + 1}',
-                        style: TextStyle(
-                          color: isCompleted || isCurrent ? Colors.white : Colors.grey,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(color: isCompleted || isCurrent ? Colors.white : Colors.grey, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    _getStatusLabel(status),
-                    style: TextStyle(fontSize: 9, color: isCurrent ? Colors.black : Colors.grey),
-                  ),
+                  Text(_getStatusLabel(status), style: TextStyle(fontSize: 9, color: isCurrent ? Colors.black : Colors.grey)),
                 ],
               ),
               if (index < flow.length - 1)
@@ -402,12 +363,11 @@ class _StatusTracking extends StatelessWidget {
   }
 }
 
+// ================ Admin Actions ================
+
 class _AdminActionsSection extends ConsumerWidget {
   final Ticket ticket;
-  final TicketRepository ticketRepo;
-
-  _AdminActionsSection({required this.ticket})
-      : ticketRepo = TicketRepository();
+  const _AdminActionsSection({required this.ticket});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -420,19 +380,14 @@ class _AdminActionsSection extends ConsumerWidget {
           error: (e, s) => Text('Error: $e'),
           data: (helpdesks) {
             return DropdownButtonFormField<int>(
-              decoration: const InputDecoration(
-                labelText: 'Assign Helpdesk',
-                border: OutlineInputBorder(),
-              ),
+              decoration: const InputDecoration(labelText: 'Assign Helpdesk', border: OutlineInputBorder()),
               items: [
                 const DropdownMenuItem(value: null, child: Text('Unassigned')),
-                ...helpdesks.map((h) => DropdownMenuItem(
-                  value: h.idHelpdesk,
-                  child: Text(h.name),
-                )),
+                ...helpdesks.map((h) => DropdownMenuItem(value: h.idHelpdesk, child: Text(h.name))),
               ],
               onChanged: ticket.status == TicketStatus.open ? (idHelpdesk) async {
                 if (idHelpdesk != null) {
+                  final ticketRepo = TicketRepository();
                   await ticketRepo.assignTicket(idTicket: ticket.idTicket, idHelpdesk: idHelpdesk);
                   ref.invalidate(ticketDetailProvider(ticket.idTicket));
                   if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket assigned')));
@@ -442,15 +397,20 @@ class _AdminActionsSection extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 12),
-
         if (ticket.status == TicketStatus.pendingUnassign) ...[
-          const Text('Unassign Request:', style: TextStyle(fontWeight: FontWeight.bold)),
+          Text('Unassign Request:', style: TextStyle(fontWeight: FontWeight.bold)),
           Text('Reason: ${ticket.unassignReason ?? '-'}'),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: ElevatedButton(
-                onPressed: () => _approveUnassign(context, ref),
+                onPressed: () async {
+                  final currentUser = ref.read(currentUserProvider);
+                  final ticketRepo = TicketRepository();
+                  await ticketRepo.approveUnassign(idTicket: ticket.idTicket, idAdmin: currentUser!.idUser);
+                  ref.invalidate(ticketDetailProvider(ticket.idTicket));
+                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unassign approved')));
+                },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 child: const Text('Approve'),
               )),
@@ -467,39 +427,22 @@ class _AdminActionsSection extends ConsumerWidget {
     );
   }
 
-  void _approveUnassign(BuildContext context, WidgetRef ref) async {
-    final currentUser = ref.read(currentUserProvider);
-    if (currentUser == null) return;
-
-    await ticketRepo.approveUnassign(idTicket: ticket.idTicket, idAdmin: currentUser.idUser);
-    ref.invalidate(ticketDetailProvider(ticket.idTicket));
-    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unassign approved')));
-  }
-
   void _showRejectDialog(BuildContext context, WidgetRef ref) {
     final reasonController = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Reject Unassign'),
-        content: TextField(
-          controller: reasonController,
-          decoration: const InputDecoration(labelText: 'Reason'),
-        ),
+        content: TextField(controller: reasonController, decoration: const InputDecoration(labelText: 'Reason')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
               if (reasonController.text.isNotEmpty) {
                 final currentUser = ref.read(currentUserProvider);
-                if (currentUser != null) {
-                  await ticketRepo.rejectUnassign(
-                    idTicket: ticket.idTicket,
-                    idAdmin: currentUser.idUser,
-                    reason: reasonController.text,
-                  );
-                  ref.invalidate(ticketDetailProvider(ticket.idTicket));
-                }
+                final ticketRepo = TicketRepository();
+                await ticketRepo.rejectUnassign(idTicket: ticket.idTicket, idAdmin: currentUser!.idUser, reason: reasonController.text);
+                ref.invalidate(ticketDetailProvider(ticket.idTicket));
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Unassign rejected')));
               }
@@ -512,23 +455,23 @@ class _AdminActionsSection extends ConsumerWidget {
   }
 }
 
+// ================ Helpdesk Actions ================
+
 class _HelpdeskActionsSection extends ConsumerWidget {
   final Ticket ticket;
-
   const _HelpdeskActionsSection({required this.ticket});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ticketRepo = TicketRepository();
     final currentUser = ref.watch(currentUserProvider);
 
     if (ticket.status == TicketStatus.assigned) {
       return ElevatedButton.icon(
         onPressed: () async {
-          // Get helpdesk ID from user
           final helpdeskRepo = HelpdeskRepository();
           final helpdesk = await helpdeskRepo.getHelpdeskByUserId(currentUser!.idUser);
           if (helpdesk != null) {
+            final ticketRepo = TicketRepository();
             await ticketRepo.startTicket(idTicket: ticket.idTicket, idHelpdesk: helpdesk.idHelpdesk);
             ref.invalidate(ticketDetailProvider(ticket.idTicket));
             if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Started working on ticket')));
@@ -540,29 +483,34 @@ class _HelpdeskActionsSection extends ConsumerWidget {
     }
 
     if (ticket.status == TicketStatus.inProgress) {
-      return Row(
+      return Column(
         children: [
-          Expanded(child: ElevatedButton.icon(
-            onPressed: () async {
-              final helpdeskRepo = HelpdeskRepository();
-              final helpdesk = await helpdeskRepo.getHelpdeskByUserId(currentUser!.idUser);
-              if (helpdesk != null) {
-                await ticketRepo.completeTicket(idTicket: ticket.idTicket, idHelpdesk: helpdesk.idHelpdesk);
-                ref.invalidate(ticketDetailProvider(ticket.idTicket));
-                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket marked as done')));
-              }
-            },
-            icon: const Icon(Icons.check),
-            label: const Text('Mark Done'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-          )),
-          const SizedBox(width: 8),
-          Expanded(child: OutlinedButton.icon(
-            onPressed: () => _showUnassignDialog(context, ref, ticketRepo),
-            icon: const Icon(Icons.exit_to_app),
-            label: const Text('Request Unassign'),
-            style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
-          )),
+          Row(
+            children: [
+              Expanded(child: ElevatedButton.icon(
+                onPressed: () async {
+                  final helpdeskRepo = HelpdeskRepository();
+                  final helpdesk = await helpdeskRepo.getHelpdeskByUserId(currentUser!.idUser);
+                  if (helpdesk != null) {
+                    final ticketRepo = TicketRepository();
+                    await ticketRepo.completeTicket(idTicket: ticket.idTicket, idHelpdesk: helpdesk.idHelpdesk);
+                    ref.invalidate(ticketDetailProvider(ticket.idTicket));
+                    if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket marked as done')));
+                  }
+                },
+                icon: const Icon(Icons.check),
+                label: const Text('Mark Done'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              )),
+              const SizedBox(width: 8),
+              Expanded(child: OutlinedButton.icon(
+                onPressed: () => _showUnassignDialog(context, ref),
+                icon: const Icon(Icons.exit_to_app),
+                label: const Text('Request Unassign'),
+                style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
+              )),
+            ],
+          ),
         ],
       );
     }
@@ -570,16 +518,13 @@ class _HelpdeskActionsSection extends ConsumerWidget {
     return const Text('No actions available');
   }
 
-  void _showUnassignDialog(BuildContext context, WidgetRef ref, TicketRepository ticketRepo) {
+  void _showUnassignDialog(BuildContext context, WidgetRef ref) {
     final reasonController = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Request Unassign'),
-        content: TextField(
-          controller: reasonController,
-          decoration: const InputDecoration(labelText: 'Reason'),
-        ),
+        content: TextField(controller: reasonController, decoration: const InputDecoration(labelText: 'Reason')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
@@ -589,11 +534,8 @@ class _HelpdeskActionsSection extends ConsumerWidget {
                 final helpdeskRepo = HelpdeskRepository();
                 final helpdesk = await helpdeskRepo.getHelpdeskByUserId(currentUser!.idUser);
                 if (helpdesk != null) {
-                  await ticketRepo.requestUnassign(
-                    idTicket: ticket.idTicket,
-                    idHelpdesk: helpdesk.idHelpdesk,
-                    reason: reasonController.text,
-                  );
+                  final ticketRepo = TicketRepository();
+                  await ticketRepo.requestUnassign(idTicket: ticket.idTicket, idHelpdesk: helpdesk.idHelpdesk, reason: reasonController.text);
                   ref.invalidate(ticketDetailProvider(ticket.idTicket));
                 }
                 if (ctx.mounted) Navigator.pop(ctx);
@@ -608,20 +550,18 @@ class _HelpdeskActionsSection extends ConsumerWidget {
   }
 }
 
+// ================ User Actions ================
+
 class _UserActionsSection extends ConsumerWidget {
   final Ticket ticket;
-
   const _UserActionsSection({required this.ticket});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ticketRepo = TicketRepository();
-    final currentUser = ref.watch(currentUserProvider);
-
     return Row(
       children: [
         Expanded(child: OutlinedButton(
-          onPressed: () => _showCancelDialog(context, ref, ticketRepo),
+          onPressed: () => _showCancelDialog(context, ref),
           style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
           child: const Text('Cancel Ticket'),
         )),
@@ -629,16 +569,13 @@ class _UserActionsSection extends ConsumerWidget {
     );
   }
 
-  void _showCancelDialog(BuildContext context, WidgetRef ref, TicketRepository ticketRepo) {
+  void _showCancelDialog(BuildContext context, WidgetRef ref) {
     final reasonController = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel Ticket'),
-        content: TextField(
-          controller: reasonController,
-          decoration: const InputDecoration(labelText: 'Reason for cancellation'),
-        ),
+        content: TextField(controller: reasonController, decoration: const InputDecoration(labelText: 'Reason for cancellation')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
           ElevatedButton(
@@ -646,11 +583,8 @@ class _UserActionsSection extends ConsumerWidget {
             onPressed: () async {
               if (reasonController.text.isNotEmpty) {
                 final currentUser = ref.read(currentUserProvider);
-                await ticketRepo.cancelTicket(
-                  idTicket: ticket.idTicket,
-                  idUser: currentUser!.idUser,
-                  reason: reasonController.text,
-                );
+                final ticketRepo = TicketRepository();
+                await ticketRepo.cancelTicket(idTicket: ticket.idTicket, idUser: currentUser!.idUser, reason: reasonController.text);
                 ref.invalidate(ticketDetailProvider(ticket.idTicket));
                 if (ctx.mounted) Navigator.pop(ctx);
                 if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ticket cancelled')));
@@ -664,21 +598,24 @@ class _UserActionsSection extends ConsumerWidget {
   }
 }
 
+// ================ Comment Card ================
+
 class _CommentCard extends StatelessWidget {
   final Comment comment;
   final int? currentUserId;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const _CommentCard({required this.comment, this.currentUserId});
+  const _CommentCard({required this.comment, this.currentUserId, this.onEdit, this.onDelete});
 
   @override
   Widget build(BuildContext context) {
+    final isOwnComment = currentUserId == comment.idUser;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -689,7 +626,13 @@ class _CommentCard extends StatelessWidget {
               Row(
                 children: [
                   if (comment.isEdited) const Text('(edited) ', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-                  Text(_formatDate(comment.createdAt), style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text('${comment.createdAt.day}/${comment.createdAt.month}/${comment.createdAt.year}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  if (isOwnComment) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(onTap: onEdit, child: Icon(Icons.edit, size: 16, color: Colors.grey[600])),
+                    const SizedBox(width: 4),
+                    GestureDetector(onTap: onDelete, child: const Icon(Icons.delete, size: 16, color: Colors.red)),
+                  ],
                 ],
               ),
             ],
@@ -699,9 +642,5 @@ class _CommentCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

@@ -4,6 +4,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/dashboard_user_widget.dart';
 import '../widgets/dashboard_admin_widget.dart';
+import '../widgets/dashboard_helpdesk_widget.dart';
 
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
@@ -16,15 +17,22 @@ class DashboardPage extends ConsumerWidget {
       return const Center(child: Text('Not authenticated'));
     }
 
-    // Trigger fetch stats when user changes
+    // Trigger refresh when user changes
     if (currentUser.role.name == 'admin') {
       ref.listen(adminDashboardStatsProvider, (previous, next) {});
     } else {
       ref.listen(userDashboardStatsProvider(currentUser.idUser), (previous, next) {});
     }
 
-    return currentUser.role.name == 'admin'
-        ? const DashboardAdminWidget()
-        : const DashboardUserWidget();
+    // Return widget based on role
+    switch (currentUser.role.name) {
+      case 'admin':
+        return const DashboardAdminWidget();
+      case 'helpdesk':
+        return const DashboardHelpdeskWidget();
+      case 'user':
+      default:
+        return const DashboardUserWidget();
+    }
   }
 }
