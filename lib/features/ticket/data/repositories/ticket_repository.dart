@@ -1,206 +1,363 @@
+import 'dart:io';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/ticket_model.dart';
-import '../models/comment_model.dart';
 
 class TicketRepository {
-  // Placeholder image in base64 (grey placeholder with image icon)
-  static const String _placeholderImage = 'iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAALUlEQVR42mNkYPhfAQMjEwMjAyMDA6OiooICw/+GBkYGRkZGBkZGBkYGBgYGBgYA3rEHvBN3tPEAAAAASUVORK5CYII=';
-  
-  // Dummy tickets
-  static final List<Ticket> _tickets = [
-    // User 1 tickets
-    Ticket(
-      id: 'ticket_001',
-      title: "Laptoku nggak mau nyala",
-      description: 'plis ini gimana ya, aku butuh banget buat kerjaan ini',
-      status: 'open',
-      createdBy: 'user1',
-      createdAt: DateTime.now().subtract(const Duration(days: 5)),
-      photoPath: _placeholderImage,
-      comments: [
-        Comment(
-          id: 'comment_001',
-          author: 'user1',
-          content: 'Plis wok ini gimana jir aku butuh banget buat kerjaan ini',
-          createdAt: DateTime.now().subtract(const Duration(days: 5)),
-        ),
-      ],
-    ),
-    Ticket(
-      id: 'ticket_002',
-      title: 'LOQ ku matot lagi',
-      description: 'Woilah el matot lagi, udah aku restart berkali-kali tetep aja',
-      status: 'assigned',
-      createdBy: 'user1',
-      assignedTo: 'udin',
-      createdAt: DateTime.now().subtract(const Duration(days: 3)),
-      photoPath: _placeholderImage,
-      comments: [
-        Comment(
-          id: 'comment_002',
-          author: 'user1',
-          content: 'Udah aku restart berkali-kali tetep aja',
-          createdAt: DateTime.now().subtract(const Duration(days: 3)),
-        ),
-        Comment(
-          id: 'comment_003',
-          author: 'udin',
-          content: 'Baik, saya akan cek segera',
-          createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        ),
-      ],
-    ),
-    // User 2 tickets
-    Ticket(
-      id: 'ticket_003',
-      title: 'Monitor mati total',
-      description: 'Monitor saya tiba-tiba mati total, sudah saya coba ganti kabel tapi tetap saja tidak menyala',
-      status: 'in_progress',
-      createdBy: 'user2',
-      assignedTo: 'viki',
-      createdAt: DateTime.now().subtract(const Duration(days: 4)),
-      photoPath: _placeholderImage,
-      comments: [
-        Comment(
-          id: 'comment_004',
-          author: 'user2',
-          content: 'plis ini gimana ya, aku butuh banget buat kerjaan ini',
-          createdAt: DateTime.now().subtract(const Duration(days: 4)),
-        ),
-      ],
-    ),
-    Ticket(
-      id: 'ticket_004',
-      title: 'Network problem',
-      description: 'Wifi di kantor sering putus-putus, sudah coba restart router tapi tetap saja',
-      status: 'done',
-      createdBy: 'user2',
-      assignedTo: 'udin',
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      photoPath: null,
-      comments: [
-        Comment(
-          id: 'comment_005',
-          author: 'user2',
-          content: 'Makasih ya sudah dibantu, sekarang wifi lancar jaya',
-          createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-      ],
-    ),
-    Ticket(
-      id: 'ticket_005',
-      title: 'Software installation',
-      description: 'Tolong bantuin install linux di laptop saya, saya butuh buat kerjaan',
-      status: 'cancelled',
-      createdBy: 'user2',
-      createdAt: DateTime.now().subtract(const Duration(days: 7)),
-      photoPath: _placeholderImage,
-      comments: [],
-    ),
-  ];
+  final SupabaseClient _client = Supabase.instance.client;
 
-  /// Get all tickets
+  /// Get all tickets (for admin)
   Future<List<Ticket>> getAllTickets() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _tickets;
+    final response = await _client
+        .from('tickets')
+        .select()
+        .order('created_at', ascending: false)
+        .limit(50);
+
+    return (response as List)
+        .map((json) => Ticket.fromJson(json))
+        .toList();
   }
 
-  /// Get tickets by user (created by username)
-  Future<List<Ticket>> getTicketsByUser(String username) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _tickets.where((t) => t.createdBy == username).toList();
+  /// Get tickets by user ID
+  Future<List<Ticket>> getTicketsByUser(int idUser) async {
+    final response = await _client
+        .from('tickets')
+        .select()
+        .eq('id_user', idUser)
+        .order('created_at', ascending: false)
+        .limit(50);
+
+    return (response as List)
+        .map((json) => Ticket.fromJson(json))
+        .toList();
   }
 
-  /// Get ticket by id
-  Future<Ticket?> getTicketById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    try {
-      return _tickets.firstWhere((t) => t.id == id);
-    } catch (e) {
-      return null;
-    }
+  /// Get tickets assigned to helpdesk
+  Future<List<Ticket>> getTicketsByHelpdesk(int idHelpdesk) async {
+    final response = await _client
+        .from('tickets')
+        .select()
+        .eq('id_helpdesk', idHelpdesk)
+        .order('created_at', ascending: false)
+        .limit(50);
+
+    return (response as List)
+        .map((json) => Ticket.fromJson(json))
+        .toList();
   }
 
-  /// Get tickets filtered by status
+  /// Get tickets by status
   Future<List<Ticket>> getTicketsByStatus(String status) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _tickets.where((t) => t.status == status).toList();
+    final response = await _client
+        .from('tickets')
+        .select()
+        .eq('status', status)
+        .order('created_at', ascending: false)
+        .limit(50);
+
+    return (response as List)
+        .map((json) => Ticket.fromJson(json))
+        .toList();
   }
 
-  /// Update ticket status
-  Future<Ticket?> updateTicketStatus(String ticketId, String newStatus) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    try {
-      final index = _tickets.indexWhere((t) => t.id == ticketId);
-      if (index != -1) {
-        _tickets[index] = _tickets[index].copyWith(status: newStatus);
-        return _tickets[index];
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
+  /// Get ticket by ID
+  Future<Ticket?> getTicketById(int idTicket) async {
+    final response = await _client
+        .from('tickets')
+        .select()
+        .eq('id_ticket', idTicket)
+        .maybeSingle();
 
-  /// Assign ticket to technician
-  Future<Ticket?> assignTicketToTechnician(
-    String ticketId,
-    String technicianUsername,
-  ) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    try {
-      final index = _tickets.indexWhere((t) => t.id == ticketId);
-      if (index != -1) {
-        _tickets[index] = _tickets[index].copyWith(
-          assignedTo: technicianUsername,
-          status: 'assigned',
-        );
-        return _tickets[index];
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  /// Add comment to ticket
-  Future<Ticket?> addCommentToTicket(String ticketId, Comment comment) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    try {
-      final index = _tickets.indexWhere((t) => t.id == ticketId);
-      if (index != -1) {
-        final currentComments = List<Comment>.from(_tickets[index].comments);
-        currentComments.add(comment);
-        _tickets[index] = _tickets[index].copyWith(comments: currentComments);
-        return _tickets[index];
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
+    if (response == null) return null;
+    return Ticket.fromJson(response);
   }
 
   /// Create new ticket
-  Future<Ticket?> createTicket(
-    String title,
-    String description,
-    String createdBy, {
+  Future<Ticket?> createTicket({
+    required String title,
+    required String description,
+    required int idUser,
     String? photoPath,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    final response = await _client.from('tickets').insert({
+      'title': title,
+      'description': description,
+      'id_user': idUser,
+      'photo_path': photoPath,
+      'status': 'open',
+    }).select().single();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Update ticket (edit)
+  Future<Ticket?> updateTicket({
+    required int idTicket,
+    String? title,
+    String? description,
+  }) async {
+    final updates = <String, dynamic>{};
+    if (title != null) updates['title'] = title;
+    if (description != null) updates['description'] = description;
+
+    final response = await _client
+        .from('tickets')
+        .update(updates)
+        .eq('id_ticket', idTicket)
+        .eq('status', 'open')
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Cancel ticket
+  Future<Ticket?> cancelTicket({
+    required int idTicket,
+    required int idUser,
+    required String reason,
+  }) async {
+    final response = await _client
+        .from('tickets')
+        .update({
+          'status': 'cancelled',
+          'cancelled_reason': reason,
+          'cancelled_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'open')
+        .eq('id_user', idUser)
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Assign ticket to helpdesk (admin)
+  Future<Ticket?> assignTicket({
+    required int idTicket,
+    required int idHelpdesk,
+  }) async {
+    final response = await _client
+        .from('tickets')
+        .update({
+          'id_helpdesk': idHelpdesk,
+          'status': 'assigned',
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'open')
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Unassign ticket (admin)
+  Future<Ticket?> unassignTicket({
+    required int idTicket,
+  }) async {
+    // Try assigned status first
+    var response = await _client
+        .from('tickets')
+        .update({
+          'id_helpdesk': null,
+          'status': 'open',
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'assigned')
+        .select()
+        .maybeSingle();
+
+    if (response != null) return Ticket.fromJson(response);
+
+    // Try pending_unassign status
+    response = await _client
+        .from('tickets')
+        .update({
+          'id_helpdesk': null,
+          'status': 'open',
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'pending_unassign')
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Start working on ticket (helpdesk)
+  Future<Ticket?> startTicket({
+    required int idTicket,
+    required int idHelpdesk,
+  }) async {
+    final response = await _client
+        .from('tickets')
+        .update({
+          'status': 'in_progress',
+          'started_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'assigned')
+        .eq('id_helpdesk', idHelpdesk)
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Mark ticket as done (helpdesk)
+  Future<Ticket?> completeTicket({
+    required int idTicket,
+    required int idHelpdesk,
+  }) async {
+    final response = await _client
+        .from('tickets')
+        .update({
+          'status': 'done',
+          'completed_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'in_progress')
+        .eq('id_helpdesk', idHelpdesk)
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Request unassign (helpdesk)
+  Future<Ticket?> requestUnassign({
+    required int idTicket,
+    required int idHelpdesk,
+    required String reason,
+  }) async {
+    // Try assigned status
+    var response = await _client
+        .from('tickets')
+        .update({
+          'status': 'pending_unassign',
+          'unassign_id_helpdesk': idHelpdesk,
+          'unassign_requested_at': DateTime.now().toIso8601String(),
+          'unassign_reason': reason,
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'assigned')
+        .eq('id_helpdesk', idHelpdesk)
+        .select()
+        .maybeSingle();
+
+    if (response != null) return Ticket.fromJson(response);
+
+    // Try in_progress status
+    response = await _client
+        .from('tickets')
+        .update({
+          'status': 'pending_unassign',
+          'unassign_id_helpdesk': idHelpdesk,
+          'unassign_requested_at': DateTime.now().toIso8601String(),
+          'unassign_reason': reason,
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'in_progress')
+        .eq('id_helpdesk', idHelpdesk)
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Approve unassign (admin)
+  Future<Ticket?> approveUnassign({
+    required int idTicket,
+    required int idAdmin,
+  }) async {
+    final response = await _client
+        .from('tickets')
+        .update({
+          'status': 'open',
+          'id_helpdesk': null,
+          'unassign_id_user': idAdmin,
+          'unassign_decided_at': DateTime.now().toIso8601String(),
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'pending_unassign')
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Reject unassign (admin)
+  Future<Ticket?> rejectUnassign({
+    required int idTicket,
+    required int idAdmin,
+    required String reason,
+  }) async {
+    final response = await _client
+        .from('tickets')
+        .update({
+          'unassign_id_user': idAdmin,
+          'unassign_decided_at': DateTime.now().toIso8601String(),
+          'unassign_reject_reason': reason,
+          'status': 'assigned',
+        })
+        .eq('id_ticket', idTicket)
+        .eq('status', 'pending_unassign')
+        .select()
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Ticket.fromJson(response);
+  }
+
+  /// Upload ticket photo to storage
+  Future<String?> uploadPhoto(int idTicket, String filePath, String fileName) async {
     try {
-      final newTicket = Ticket(
-        id: 'ticket_${DateTime.now().millisecondsSinceEpoch}',
-        title: title,
-        description: description,
-        status: 'open',
-        createdBy: createdBy,
-        createdAt: DateTime.now(),
-        photoPath: photoPath,
-      );
-      _tickets.add(newTicket);
-      return newTicket;
+      final bytes = await File(filePath).readAsBytes();
+      final path = 'tickets/$idTicket/$fileName';
+      
+      await _client.storage
+          .from('ticket-photos')
+          .uploadBinary(path, bytes);
+
+      return _client.storage
+          .from('ticket-photos')
+          .getPublicUrl(path);
     } catch (e) {
       return null;
     }
+  }
+
+  /// Get username by user ID
+  Future<String?> getUsernameById(int idUser) async {
+    final response = await _client
+        .from('users')
+        .select('username')
+        .eq('id_user', idUser)
+        .maybeSingle();
+    
+    if (response == null) return null;
+    return response['username'] as String?;
+  }
+
+  /// Get helpdesk name by helpdesk ID
+  Future<String?> getHelpdeskNameById(int idHelpdesk) async {
+    final response = await _client
+        .from('helpdesks')
+        .select('name')
+        .eq('id_helpdesk', idHelpdesk)
+        .maybeSingle();
+    
+    if (response == null) return null;
+    return response['name'] as String?;
   }
 }

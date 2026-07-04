@@ -1,40 +1,56 @@
 class Notification {
-  final String id;
+  final int idNotification;
+  final int idUser;
+  final String type;
   final String title;
-  final String description;
-  final String time;
-  final String relatedTicketId;
-  final DateTime createdAt;
+  final String body;
+  final int? idTicket;
   final bool isRead;
+  final DateTime createdAt;
 
   Notification({
-    required this.id,
+    required this.idNotification,
+    required this.idUser,
+    required this.type,
     required this.title,
-    required this.description,
-    required this.time,
-    required this.relatedTicketId,
+    required this.body,
+    this.idTicket,
+    required this.isRead,
     required this.createdAt,
-    this.isRead = false,
   });
 
-  // CopyWith method untuk immutability
+  factory Notification.fromJson(Map<String, dynamic> json) {
+    return Notification(
+      idNotification: json['id_notification'] as int,
+      idUser: json['id_user'] as int,
+      type: json['type'] as String,
+      title: json['title'] as String,
+      body: json['body'] as String,
+      idTicket: json['id_ticket'] as int?,
+      isRead: json['is_read'] as bool,
+      createdAt: DateTime.parse(json['created_at'] as String),
+    );
+  }
+
   Notification copyWith({
-    String? id,
+    int? idNotification,
+    int? idUser,
+    String? type,
     String? title,
-    String? description,
-    String? time,
-    String? relatedTicketId,
-    DateTime? createdAt,
+    String? body,
+    int? idTicket,
     bool? isRead,
+    DateTime? createdAt,
   }) {
     return Notification(
-      id: id ?? this.id,
+      idNotification: idNotification ?? this.idNotification,
+      idUser: idUser ?? this.idUser,
+      type: type ?? this.type,
       title: title ?? this.title,
-      description: description ?? this.description,
-      time: time ?? this.time,
-      relatedTicketId: relatedTicketId ?? this.relatedTicketId,
-      createdAt: createdAt ?? this.createdAt,
+      body: body ?? this.body,
+      idTicket: idTicket ?? this.idTicket,
       isRead: isRead ?? this.isRead,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }

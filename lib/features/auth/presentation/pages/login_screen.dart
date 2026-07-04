@@ -12,7 +12,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  late TextEditingController _usernameController;
+  late TextEditingController _emailController;
   late TextEditingController _passwordController;
   bool _isLoading = false;
   String? _errorMessage;
@@ -20,20 +20,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _usernameController = TextEditingController();
+    _emailController = TextEditingController();
     _passwordController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   void _handleLogin() async {
-    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-      setState(() => _errorMessage = 'Username and password required');
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      setState(() => _errorMessage = 'Email and password required');
+      return;
+    }
+
+    if (!_emailController.text.contains('@')) {
+      setState(() => _errorMessage = 'Please enter a valid email');
       return;
     }
 
@@ -42,7 +47,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage = null;
     });
 
-    final credentials = LoginCredentials(_usernameController.text, _passwordController.text);
+    final credentials = LoginCredentials(
+      _emailController.text,
+      _passwordController.text,
+    );
 
     // Trigger login
     final loginResult = await ref.read(loginProvider(credentials).future);
@@ -56,7 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       // Login gagal
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Invalid username or password';
+        _errorMessage = 'Invalid email or password';
       });
     }
   }
@@ -122,13 +130,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
               ),
             if (_errorMessage != null) const SizedBox(height: 16),
-            // Username field
+            // Email field
             TextField(
-              controller: _usernameController,
+              controller: _emailController,
               enabled: !_isLoading,
+              keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
-                hintText: 'Username',
-                prefixIcon: Icon(Icons.person),
+                hintText: 'Email',
+                prefixIcon: Icon(Icons.email),
               ),
             ),
             const SizedBox(height: 16),
@@ -196,27 +205,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
             const SizedBox(height: 24),
             // Demo credentials
-            // Container(
-            //   padding: const EdgeInsets.all(12),
-            //   decoration: BoxDecoration(
-            //     color: Colors.blue[50],
-            //     border: Border.all(color: Colors.blue),
-            //     borderRadius: BorderRadius.circular(8),
-            //   ),
-            //   child: Column(
-            //     crossAxisAlignment: CrossAxisAlignment.start,
-            //     children: [
-            //       const Text(
-            //         'Demo Credentials:',
-            //         style: TextStyle(fontWeight: FontWeight.bold),
-            //       ),
-            //       const SizedBox(height: 8),
-            //       const Text('User: user1 / password'),
-            //       const Text('User: user2 / password'),
-            //       const Text('Admin: admin / admin123'),
-            //     ],
-            //   ),
-            // ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                border: Border.all(color: Colors.blue),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Demo Credentials:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Text('Admin: admin@mail.com / admin123'),
+                  Text('User: user@mail.com / user123'),
+                  Text('Helpdesk: udin@mail.com / helpdesk123'),
+                  Text('Helpdesk: viki@mail.com / helpdesk123'),
+                ],
+              ),
+            ),
           ],
         ),
       ),

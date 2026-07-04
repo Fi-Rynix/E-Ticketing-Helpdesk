@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../ticket/presentation/pages/ticket_detail_page.dart';
 import '../providers/notification_provider.dart';
 
@@ -8,9 +9,21 @@ class NotificationPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsAsync = ref.watch(allNotificationsProvider);
+    final currentUser = ref.watch(currentUserProvider);
+
+    if (currentUser == null) {
+      return const Center(child: Text('Not authenticated'));
+    }
+
+    final notificationsAsync = ref.watch(userNotificationsProvider(currentUser.idUser));
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notifications', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF000072),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: notificationsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
@@ -22,10 +35,7 @@ class NotificationPage extends ConsumerWidget {
                 children: [
                   Icon(Icons.notifications_none, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  Text(
-                    'No notifications',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
+                  Text('No notifications', style: TextStyle(color: Colors.grey[600])),
                 ],
               ),
             );
@@ -39,9 +49,7 @@ class NotificationPage extends ConsumerWidget {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: ListTile(
                   leading: Container(
                     width: 40,
@@ -51,7 +59,7 @@ class NotificationPage extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      Icons.notifications,
+                      _getIcon(notification.type),
                       color: notification.isRead ? Colors.grey : Colors.blue,
                     ),
                   ),
@@ -66,10 +74,10 @@ class NotificationPage extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      Text(notification.description),
+                      Text(notification.body),
                       const SizedBox(height: 4),
                       Text(
-                        notification.time,
+                        _formatDate(notification.createdAt),
                         style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                       ),
                     ],
@@ -78,15 +86,16 @@ class NotificationPage extends ConsumerWidget {
                   onTap: () {
                     // Mark as read
                     if (!notification.isRead) {
-                      ref.read(markNotificationAsReadProvider(notification.id));
+                      ref.read(markAsReadProvider(notification.idNotification));
                     }
-                    // Navigate to ticket detail
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            TicketDetailPage(ticketId: notification.relatedTicketId),
-                      ),
-                    );
+                    // Navigate to ticket detail if idTicket exists
+                    if (notification.idTicket != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => TicketDetailPage(ticketId: notification.idTicket!),
+                        ),
+                      );
+                    }
                   },
                 ),
               );
@@ -95,5 +104,28 @@ class NotificationPage extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  IconData _getIcon(String type) {
+    switch (type) {
+      case 'ticket_created':
+        return Icons.add_circle;
+      case 'ticket_assigned':
+        return Icons.person_add;
+      case 'ticket_in_progress':
+        return Icons.play_circle;
+      case 'ticket_done':
+        return Icons.check_circle;
+      case 'ticket_cancelled':
+        return Icons.cancel;
+      case 'comment_added':
+        return Icons.comment;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
   }
 }

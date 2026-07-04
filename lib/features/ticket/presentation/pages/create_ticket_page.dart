@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'dart:convert';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/ticket_provider.dart';
 import 'camera_screen.dart';
@@ -16,18 +15,10 @@ class CreateTicketPage extends ConsumerStatefulWidget {
 }
 
 class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
-  late TextEditingController _titleController;
-  late TextEditingController _descriptionController;
+  final _titleController = TextEditingController();
+  final _descriptionController = TextEditingController();
   bool _isSubmitting = false;
   XFile? _attachedPhoto;
-  late final _ticketRepo = ref.watch(ticketRepositoryProvider);
-
-  @override
-  void initState() {
-    super.initState();
-    _titleController = TextEditingController();
-    _descriptionController = TextEditingController();
-  }
 
   @override
   void dispose() {
@@ -36,7 +27,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
     super.dispose();
   }
 
-  void _handleCreateTicket() async {
+  Future<void> _handleCreateTicket() async {
     if (_titleController.text.isEmpty || _descriptionController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all fields')),
@@ -44,55 +35,67 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
       return;
     }
 
-    setState(() => _isSubmitting = true);
-
     final currentUser = ref.read(currentUserProvider);
-    
-    // Convert photo to base64 if attached
-    String? photoBase64;
-    if (_attachedPhoto != null) {
-      try {
-        final bytes = await _attachedPhoto!.readAsBytes();
-        photoBase64 = base64Encode(bytes);
-      } catch (e) {
-        print('Error converting photo to base64: $e');
-      }
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not authenticated')),
+      );
+      return;
     }
 
-    final ticket = await _ticketRepo.createTicket(
-      _titleController.text,
-      _descriptionController.text,
-      currentUser?.username ?? 'unknown',
-      photoPath: photoBase64,
-    );
+    setState(() => _isSubmitting = true);
 
-    if (!mounted) return;
+    try {
+      final ticketRepo = ref.read(ticketRepositoryProvider);
+      
+      // Upload photo if attached
+      String? photoUrl;
+      if (_attachedPhoto != null) {
+        // For now, store base64 - in production, upload to Supabase Storage
+        // photoUrl = await ticketRepo.uploadPhoto(...);
+      }
 
-    if (ticket != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ticket ${ticket.id} created successfully')),
+      final ticket = await ticketRepo.createTicket(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        idUser: currentUser.idUser,
+        photoPath: photoUrl,
       );
-      ref.refresh(userTicketsProvider(currentUser?.username ?? ''));
-      Navigator.pop(context);
-    } else {
+
+      if (!mounted) return;
+
+      if (ticket != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ticket #${ticket.idTicket} created successfully')),
+        );
+        
+        // Refresh user tickets
+        ref.invalidate(userTicketsProvider(currentUser.idUser));
+        
+        Navigator.pop(context);
+      } else {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to create ticket')),
+        );
+      }
+    } catch (e) {
       setState(() => _isSubmitting = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to create ticket')),
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
 
   void _handleCameraPermission() async {
     final status = await Permission.camera.request();
-    
+
     if (!mounted) return;
 
     if (status.isGranted) {
-      // Navigate to camera screen and await result
       final XFile? photo = await Navigator.of(context).push<XFile?>(
-        MaterialPageRoute(
-          builder: (_) => const CameraScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const CameraScreen()),
       );
 
       if (photo != null && mounted) {
@@ -106,15 +109,11 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
         const SnackBar(content: Text('Camera permission denied')),
       );
     } else if (status.isPermanentlyDenied) {
-      // Show dialog to open app settings
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Camera Permission'),
-          content: const Text(
-            'Camera permission is permanently denied. '
-            'Please enable it in app settings.',
-          ),
+          content: const Text('Camera permission is permanently denied. Please enable it in app settings.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -156,6 +155,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
+
             // Title field
             const Text('Title', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -169,6 +169,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
               ),
             ),
             const SizedBox(height: 20),
+
             // Description field
             const Text('Description', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -182,6 +183,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
               ),
             ),
             const SizedBox(height: 20),
+
             // Attached photo preview
             if (_attachedPhoto != null) ...[
               const Text('Attached Photo', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -220,6 +222,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
               ),
               const SizedBox(height: 20),
             ],
+
             // Camera button
             ElevatedButton.icon(
               onPressed: _isSubmitting ? null : _handleCameraPermission,
@@ -230,6 +233,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
               ),
             ),
             const SizedBox(height: 24),
+
             // Submit button
             ElevatedButton(
               onPressed: _isSubmitting ? null : _handleCreateTicket,
@@ -237,14 +241,12 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Text('Create Ticket'),
             ),
             const SizedBox(height: 12),
+
             // Cancel button
             OutlinedButton(
               onPressed: _isSubmitting ? null : () => Navigator.pop(context),

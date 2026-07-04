@@ -1,24 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../data/models/user_model.dart';
 import '../../data/repositories/auth_repository.dart';
 
 final authRepositoryProvider = Provider((ref) => AuthRepository());
 
 // Provider untuk track user yang sedang login
-final currentUserProvider = StateProvider<User?>((ref) => null);
+final currentUserProvider = StateProvider<AppUser?>((ref) => null);
 
 // Credentials class untuk login
 class LoginCredentials {
-  final String username;
+  final String email;
   final String password;
 
-  LoginCredentials(this.username, this.password);
+  LoginCredentials(this.email, this.password);
 }
 
 // Provider untuk login
-final loginProvider = FutureProvider.family<User?, LoginCredentials>((ref, credentials) async {
+final loginProvider = FutureProvider.family<AppUser?, LoginCredentials>((ref, credentials) async {
   final authRepo = ref.watch(authRepositoryProvider);
-  final user = await authRepo.login(credentials.username, credentials.password);
+  final user = await authRepo.login(credentials.email, credentials.password);
 
   if (user != null) {
     ref.read(currentUserProvider.notifier).state = user;
@@ -43,5 +44,27 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
 // Provider untuk role user saat ini
 final userRoleProvider = Provider<String?>((ref) {
   final user = ref.watch(currentUserProvider);
-  return user?.role;
+  return user?.roleString;
+});
+
+// Provider untuk auth state listener
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  final authRepo = ref.watch(authRepositoryProvider);
+  return authRepo.authStateChanges;
+});
+
+// Auto-restore session on app start
+final initAuthProvider = FutureProvider<AppUser?>((ref) async {
+  final authRepo = ref.watch(authRepositoryProvider);
+  final session = authRepo.currentSession;
+
+  if (session != null) {
+    final user = await authRepo.getUserProfile(session.user.id);
+    if (user != null) {
+      ref.read(currentUserProvider.notifier).state = user;
+    }
+    return user;
+  }
+
+  return null;
 });

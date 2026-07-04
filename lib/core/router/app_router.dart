@@ -53,7 +53,7 @@ class AppRouter {
         );
       
       case AppConstants.routeTicketDetail:
-        final ticketId = settings.arguments as String;
+        final ticketId = settings.arguments as int;
         return MaterialPageRoute(
           builder: (_) => TicketDetailPage(ticketId: ticketId),
           settings: settings,

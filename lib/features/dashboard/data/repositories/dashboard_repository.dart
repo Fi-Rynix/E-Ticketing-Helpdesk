@@ -1,14 +1,11 @@
 import '../../data/models/dashboard_model.dart';
-import '../../../ticket/data/repositories/ticket_repository.dart';
+import '../../../ticket/data/models/ticket_model.dart';
 
 class DashboardRepository {
-  final TicketRepository _ticketRepository = TicketRepository();
-
-  /// Get dashboard stats for a specific user
-  Future<DashboardStats> getUserDashboardStats(String username) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  /// Get dashboard stats for a specific user by ID
+  Future<DashboardStats> getUserDashboardStats(int idUser, Future<List<Ticket>> Function(int) getTicketsByUser) async {
     try {
-      final userTickets = await _ticketRepository.getTicketsByUser(username);
+      final userTickets = await getTicketsByUser(idUser);
       return DashboardStats.fromUserTickets(userTickets);
     } catch (e) {
       return DashboardStats(
@@ -25,10 +22,8 @@ class DashboardRepository {
   }
 
   /// Get dashboard stats for admin (all tickets)
-  Future<DashboardStats> getAdminDashboardStats() async {
-    await Future.delayed(const Duration(milliseconds: 300));
+  Future<DashboardStats> getAdminDashboardStats(List<Ticket> allTickets) async {
     try {
-      final allTickets = await _ticketRepository.getAllTickets();
       return DashboardStats.fromAllTickets(allTickets);
     } catch (e) {
       return DashboardStats(

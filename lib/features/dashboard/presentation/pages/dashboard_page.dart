@@ -17,13 +17,13 @@ class DashboardPage extends ConsumerWidget {
     }
 
     // Trigger fetch stats when user changes
-    if (currentUser.role == 'admin') {
+    if (currentUser.role.name == 'admin') {
       ref.listen(adminDashboardStatsProvider, (previous, next) {});
     } else {
-      ref.listen(userDashboardStatsProvider(currentUser.username), (previous, next) {});
+      ref.listen(userDashboardStatsProvider(currentUser.idUser), (previous, next) {});
     }
 
-    return currentUser.role == 'admin'
+    return currentUser.role.name == 'admin'
         ? const DashboardAdminWidget()
         : const DashboardUserWidget();
   }

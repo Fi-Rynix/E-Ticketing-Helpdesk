@@ -12,11 +12,11 @@ class DashboardUserWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
     final dashboardStatsAsync = ref.watch(
-      userDashboardStatsProvider(currentUser?.username ?? ''),
+      userDashboardStatsProvider(currentUser?.idUser ?? 0),
     );
 
     ref.listen(
-      userDashboardStatsProvider(currentUser?.username ?? ''),
+      userDashboardStatsProvider(currentUser?.idUser ?? 0),
       (previous, next) {},
     );
 
@@ -35,7 +35,6 @@ class DashboardUserWidget extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 4),
-
           Text(
             currentUser?.username ?? 'User',
             style: const TextStyle(
@@ -44,9 +43,7 @@ class DashboardUserWidget extends ConsumerWidget {
               letterSpacing: -0.5,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             "Here's your ticket overview",
             style: TextStyle(
@@ -54,7 +51,6 @@ class DashboardUserWidget extends ConsumerWidget {
               color: Colors.grey[500],
             ),
           ),
-
           const SizedBox(height: 32),
 
           // Stats section
@@ -76,7 +72,6 @@ class DashboardUserWidget extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-
                       Expanded(
                         child: _StatCard(
                           title: 'Active Tickets',
@@ -87,13 +82,9 @@ class DashboardUserWidget extends ConsumerWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 16),
-
                   _ThemeCard(
-                    value: ref.watch(themeModeProvider)
-                        ? 'Dark'
-                        : 'Light',
+                    value: ref.watch(themeModeProvider) ? 'Dark' : 'Light',
                     icon: ref.watch(themeModeProvider)
                         ? Icons.dark_mode_outlined
                         : Icons.light_mode_outlined,
@@ -161,12 +152,10 @@ class _StatCard extends StatelessWidget {
                     size: 20,
                   ),
                 ),
-
                 const SizedBox(width: 12),
-
                 Expanded(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center, // 🔥 center vertical
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
@@ -178,9 +167,7 @@ class _StatCard extends StatelessWidget {
                           letterSpacing: -0.5,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       Text(
                         title,
                         style: TextStyle(
@@ -245,9 +232,7 @@ class _ThemeCard extends StatelessWidget {
                   size: 20,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,7 +256,6 @@ class _ThemeCard extends StatelessWidget {
                   ],
                 ),
               ),
-
               Icon(
                 Icons.chevron_right,
                 color: Colors.grey.shade400,

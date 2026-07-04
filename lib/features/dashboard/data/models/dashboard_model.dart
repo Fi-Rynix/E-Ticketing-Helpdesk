@@ -1,3 +1,5 @@
+import '../../../ticket/data/models/ticket_model.dart';
+
 class DashboardStats {
   final int totalTickets;
   final int openTickets;
@@ -20,10 +22,10 @@ class DashboardStats {
   });
 
   // Factory constructor untuk user dashboard
-  factory DashboardStats.fromUserTickets(List<dynamic> tickets) {
+  factory DashboardStats.fromUserTickets(List<Ticket> tickets) {
     final total = tickets.length;
-    final active = tickets.where((t) => t.status != 'done' && t.status != 'cancelled').length;
-    final completed = tickets.where((t) => t.status == 'done').length;
+    final active = tickets.where((t) => t.status != TicketStatus.done && t.status != TicketStatus.cancelled).length;
+    final completed = tickets.where((t) => t.status == TicketStatus.done).length;
 
     return DashboardStats(
       totalTickets: total,
@@ -38,13 +40,13 @@ class DashboardStats {
   }
 
   // Factory constructor untuk admin dashboard
-  factory DashboardStats.fromAllTickets(List<dynamic> tickets) {
+  factory DashboardStats.fromAllTickets(List<Ticket> tickets) {
     final total = tickets.length;
-    final open = tickets.where((t) => t.status == 'open').length;
-    final assigned = tickets.where((t) => t.status == 'assigned').length;
-    final inProgress = tickets.where((t) => t.status == 'in_progress').length;
-    final done = tickets.where((t) => t.status == 'done').length;
-    final cancelled = tickets.where((t) => t.status == 'cancelled').length;
+    final open = tickets.where((t) => t.status == TicketStatus.open).length;
+    final assigned = tickets.where((t) => t.status == TicketStatus.assigned).length;
+    final inProgress = tickets.where((t) => t.status == TicketStatus.inProgress).length;
+    final done = tickets.where((t) => t.status == TicketStatus.done).length;
+    final cancelled = tickets.where((t) => t.status == TicketStatus.cancelled).length;
 
     return DashboardStats(
       totalTickets: total,

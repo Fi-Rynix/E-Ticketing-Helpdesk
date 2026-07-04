@@ -1,31 +1,61 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_model.dart';
 
 class AuthRepository {
-  // Predefined users
-  static final List<User> _users = [
-    User(username: 'user1', password: 'password', role: 'user'),
-    User(username: 'user2', password: 'password', role: 'user'),
-    User(username: 'admin', password: 'admin123', role: 'admin'),
-  ];
+  final SupabaseClient _client = Supabase.instance.client;
 
-  /// Login dengan username dan password
-  /// Returns User jika login berhasil, null jika gagal
-  Future<User?> login(String username, String password) async {
-    // Simulasi delay network
-    await Future.delayed(const Duration(seconds: 1));
+  /// Login dengan email dan password via Supabase Auth
+  /// Returns AppUser profile jika login berhasil, null jika gagal
+  Future<AppUser?> login(String email, String password) async {
+    final response = await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
 
-    try {
-      final user = _users.firstWhere(
-        (u) => u.username == username && u.password == password,
-      );
-      return user;
-    } catch (e) {
-      return null; // Login gagal
-    }
+    if (response.user == null) return null;
+
+    // Fetch user profile dari tabel users
+    final profile = await getUserProfile(response.user!.id);
+    return profile;
+  }
+
+  /// Get user profile dari Supabase berdasarkan auth_user_id
+  Future<AppUser?> getUserProfile(String authUserId) async {
+    final response = await _client
+        .from('users')
+        .select()
+        .eq('auth_user_id', authUserId)
+        .maybeSingle();
+
+    if (response == null) return null;
+    return AppUser.fromJson(response);
+  }
+
+  /// Register user baru
+  Future<AppUser?> register(String email, String password, String username) async {
+    final response = await _client.auth.signUp(
+      email: email,
+      password: password,
+      data: {'username': username},
+    );
+
+    if (response.user == null) return null;
+
+    // Fetch profile yang baru dibuat via trigger
+    return getUserProfile(response.user!.id);
   }
 
   /// Logout
   Future<void> logout() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    await _client.auth.signOut();
   }
+
+  /// Get current session
+  Session? get currentSession => _client.auth.currentSession;
+
+  /// Get current user
+  User? get currentAuthUser => _client.auth.currentUser;
+
+  /// Listen to auth state changes
+  Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
 }
