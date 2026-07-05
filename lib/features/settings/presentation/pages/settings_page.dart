@@ -1,252 +1,161 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/theme_provider.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../providers/settings_provider.dart';
 
-class SettingsPage extends ConsumerStatefulWidget {
+class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
   @override
-  ConsumerState<SettingsPage> createState() => _SettingsPageState();
-}
-
-class _SettingsPageState extends ConsumerState<SettingsPage> {
-  late TextEditingController _usernameController;
-  late TextEditingController _emailController;
-
-  @override
-  void initState() {
-    super.initState();
-    _usernameController = TextEditingController();
-    _emailController = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  void _handleLogout() async {
-    ref.read(logoutProvider);
-    Navigator.of(context).pushReplacementNamed('/login');
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final darkMode = ref.watch(darkModeProvider);
     final notificationsEnabled = ref.watch(notificationsEnabledProvider);
     final soundEnabled = ref.watch(soundEnabledProvider);
-    final currentUser = ref.watch(currentUserProvider);
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Pengaturan',
+          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF000072),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: ListView(
+        padding: const EdgeInsets.all(20),
         children: [
-          // User Section
-          if (currentUser != null)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'User Profile',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    elevation: 0,
-                    margin: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 30,
-                                backgroundColor: Theme.of(context).primaryColor,
-                                child: Text(
-                                  currentUser.username[0].toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    currentUser.username,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: currentUser.role == 'admin'
-                                          ? const Color(0xFF000072).withOpacity(0.1)
-                                          : const Color(0xFF059669).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      currentUser.role.toUpperCase(),
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: currentUser.role == 'admin'
-                                            ? const Color(0xFF000072)
-                                            : const Color(0xFF059669),
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          const Divider(),
-
-          // Appearance Section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Appearance',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile(
-                  title: const Text('Dark Mode'),
-                  subtitle: Text(darkMode ? 'Enabled' : 'Disabled'),
+          _SectionTitle(icon: Icons.palette_outlined, title: 'Tampilan'),
+          _SettingsCard(
+            children: [
+              _SettingTile(
+                icon: Icons.dark_mode_outlined,
+                title: 'Mode Gelap',
+                subtitle: darkMode ? 'Aktif' : 'Nonaktif',
+                trailing: Switch(
                   value: darkMode,
+                  activeColor: const Color(0xFF000072),
                   onChanged: (value) {
                     ref.read(darkModeProvider.notifier).setDarkMode(value);
                     ref.read(themeModeProvider.notifier).toggleTheme();
                   },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 24),
 
-          const Divider(),
-
-          // Notifications Section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Notifications',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile(
-                  title: const Text('Notifications'),
-                  subtitle: Text(notificationsEnabled ? 'Enabled' : 'Disabled'),
+          _SectionTitle(icon: Icons.notifications_outlined, title: 'Notifikasi'),
+          _SettingsCard(
+            children: [
+              _SettingTile(
+                icon: Icons.notifications_active_outlined,
+                title: 'Notifikasi',
+                subtitle: notificationsEnabled ? 'Aktif' : 'Nonaktif',
+                trailing: Switch(
                   value: notificationsEnabled,
+                  activeColor: const Color(0xFF000072),
                   onChanged: (value) {
                     ref.read(notificationsEnabledProvider.notifier).setNotificationsEnabled(value);
                   },
                 ),
-                SwitchListTile(
-                  title: const Text('Sound'),
-                  subtitle: Text(soundEnabled ? 'Enabled' : 'Disabled'),
+              ),
+              const Divider(height: 1, indent: 60),
+              _SettingTile(
+                icon: Icons.volume_up_outlined,
+                title: 'Suara',
+                subtitle: soundEnabled ? 'Aktif' : 'Nonaktif',
+                trailing: Switch(
                   value: soundEnabled,
+                  activeColor: const Color(0xFF000072),
                   onChanged: (value) {
                     ref.read(soundEnabledProvider.notifier).setSoundEnabled(value);
                   },
                 ),
-              ],
-            ),
-          ),
-
-          const Divider(),
-
-          // App Section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'About',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  title: const Text('App Version'),
-                  subtitle: const Text('1.0.0'),
-                ),
-                ListTile(
-                  title: const Text('About App'),
-                  subtitle: const Text('E-Ticketing Helpdesk System'),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Logout Button
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ElevatedButton.icon(
-              onPressed: _handleLogout,
-              icon: const Icon(Icons.logout),
-              label: const Text('Logout'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
               ),
-            ),
+            ],
           ),
-
-          const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  const _SectionTitle({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF000072)),
+          const SizedBox(width: 8),
+          Text(
+            title.toUpperCase(),
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+              color: Color(0xFF000072),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsCard({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Theme.of(context).cardColor,
+      child: Column(children: children),
+    );
+  }
+}
+
+class _SettingTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget trailing;
+
+  const _SettingTile({
+    required this.icon,
+    required this.title,
+    required this.trailing,
+    this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFF000072).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: const Color(0xFF000072), size: 22),
+      ),
+      title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+      subtitle: subtitle != null
+          ? Text(subtitle!, style: TextStyle(fontSize: 12, color: AppTheme.textSubtle(context)))
+          : null,
+      trailing: trailing,
     );
   }
 }

@@ -4,7 +4,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../pages/dashboard_page.dart';
 import '../../../ticket/presentation/pages/ticket_list_page.dart';
 import '../../../notification/presentation/pages/notification_page.dart';
-import '../../../settings/presentation/pages/settings_page.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
 
 class MainLayout extends ConsumerStatefulWidget {
   const MainLayout({super.key});
@@ -26,13 +26,13 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
       const DashboardPage(),
       const TicketListPage(),
       const NotificationPage(),
-      const SettingsPage(),
+      const ProfilePage(),
     ];
     _titles = [
       'Dashboard',
       'Tickets',
       'Notifications',
-      'Settings',
+      'Profile',
     ];
   }
 
@@ -80,8 +80,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> {
             label: 'Notifications',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: Icon(Icons.person),
+            label: 'Profile',
           ),
         ],
       ),

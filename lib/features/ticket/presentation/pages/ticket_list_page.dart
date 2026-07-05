@@ -409,13 +409,13 @@ class _StatusBadge extends StatelessWidget {
   Color _getColor() {
     switch (status) {
       case TicketStatus.open:
-        return const Color(0xFFDC2626);
+        return const Color(0xFF000072);
       case TicketStatus.assigned:
-        return const Color(0xFFF97316);
+        return const Color(0xFF1E40AF);
       case TicketStatus.inProgress:
         return const Color(0xFF3B82F6);
       case TicketStatus.pendingUnassign:
-        return const Color(0xFFA855F7);
+        return const Color(0xFF60A5FA);
       case TicketStatus.done:
         return const Color(0xFF10B981);
       case TicketStatus.cancelled:

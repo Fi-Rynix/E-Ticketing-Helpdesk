@@ -30,17 +30,17 @@ class TrackingTicketPage extends ConsumerWidget {
   Color _getStatusColor(TicketStatus status) {
     switch (status) {
       case TicketStatus.open:
-        return Colors.red;
+        return const Color(0xFF000072);
       case TicketStatus.assigned:
-        return Colors.orange;
+        return const Color(0xFF1E40AF);
       case TicketStatus.inProgress:
-        return Colors.blue;
+        return const Color(0xFF3B82F6);
       case TicketStatus.pendingUnassign:
-        return Colors.purple;
+        return const Color(0xFF60A5FA);
       case TicketStatus.done:
-        return Colors.green;
+        return const Color(0xFF10B981);
       case TicketStatus.cancelled:
-        return Colors.grey;
+        return const Color(0xFF6B7280);
     }
   }
 

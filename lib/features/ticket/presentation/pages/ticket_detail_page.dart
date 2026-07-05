@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/theme/app_theme.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/ticket_model.dart';
 import '../../data/models/comment_model.dart';
@@ -283,16 +284,72 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('#${ticket.idTicket}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                    _StatusBadge(status: ticket.status),
-                  ],
+                // Header card with title + status
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF000072),
+                          const Color(0xFF000072).withValues(alpha: 0.85),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '#${ticket.idTicket}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                            _StatusBadge(status: ticket.status),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          ticket.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _formatDate(ticket.createdAt),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
-                Text(ticket.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
 
                 // Tracking button
                 OutlinedButton.icon(
@@ -305,37 +362,117 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF000072),
                     side: const BorderSide(color: Color(0xFF000072)),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 44),
                   ),
                 ),
-                const SizedBox(height: 16),
-                _SectionCard(title: 'Description', child: Text(ticket.description)),
+                const SizedBox(height: 20),
+
+                // Description card
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.description_outlined, size: 18, color: const Color(0xFF000072)),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Deskripsi',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          ticket.description,
+                          style: const TextStyle(fontSize: 14, height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 16),
 
                 // Photo section (if exists)
                 if (ticket.photoPath != null && ticket.photoPath!.isNotEmpty) ...[
-                  const Text('Photo', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () => _showFullScreenImage(context, ticket.photoPath!),
-                    child: Container(
-                      height: 200,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: NetworkImage(ticket.photoPath!),
-                          fit: BoxFit.cover,
-                        ),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.image_outlined, size: 18, color: const Color(0xFF000072)),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Lampiran Foto',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          GestureDetector(
+                            onTap: () => _showFullScreenImage(context, ticket.photoPath!),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 200,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  image: DecorationImage(
+                                    image: NetworkImage(ticket.photoPath!),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                 ],
-                _InfoRow(label: 'Created by', value: _creatorName ?? 'Loading...'),
-                _InfoRow(label: 'Created at', value: _formatDate(ticket.createdAt)),
-                if (ticket.idHelpdesk != null)
-                  _InfoRow(label: 'Assigned to', value: _helpdeskName ?? 'Loading...'),
-                const SizedBox(height: 16),
+
+                // Meta info card
+                Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _InfoRow(icon: Icons.person_outline, label: 'Pelapor', value: _creatorName ?? 'Loading...'),
+                        if (ticket.idHelpdesk != null) ...[
+                          const Divider(height: 16),
+                          _InfoRow(icon: Icons.support_agent, label: 'Ditugaskan ke', value: _helpdeskName ?? 'Loading...'),
+                        ],
+                        if (ticket.completedAt != null) ...[
+                          const Divider(height: 16),
+                          _InfoRow(icon: Icons.check_circle_outline, label: 'Selesai pada', value: _formatDate(ticket.completedAt!)),
+                        ],
+                        if (ticket.cancelledAt != null) ...[
+                          const Divider(height: 16),
+                          _InfoRow(
+                            icon: Icons.cancel_outlined,
+                            label: 'Dibatalkan',
+                            value: ticket.cancelledReason ?? _formatDate(ticket.cancelledAt!),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
 
                 // Role-based sections
                 if (currentUser?.role == 'admin') ...[
@@ -506,7 +643,7 @@ class _SectionCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: AppTheme.bgSubtle(context), borderRadius: BorderRadius.circular(8)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
@@ -519,17 +656,29 @@ class _SectionCard extends StatelessWidget {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
-  const _InfoRow({required this.label, required this.value});
+  final IconData? icon;
+  const _InfoRow({required this.label, required this.value, this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: AppTheme.textSubtle(context)),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            child: Text(label, style: TextStyle(color: AppTheme.textSubtle(context), fontSize: 13)),
+          ),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              textAlign: TextAlign.right,
+            ),
+          ),
         ],
       ),
     );
@@ -551,12 +700,12 @@ class _StatusBadge extends StatelessWidget {
 
   Color _getColor() {
     switch (status) {
-      case TicketStatus.open: return Colors.red;
-      case TicketStatus.assigned: return Colors.orange;
-      case TicketStatus.inProgress: return Colors.blue;
-      case TicketStatus.pendingUnassign: return Colors.purple;
-      case TicketStatus.done: return Colors.green;
-      case TicketStatus.cancelled: return Colors.grey;
+      case TicketStatus.open: return const Color(0xFF000072);
+      case TicketStatus.assigned: return const Color(0xFF1E40AF);
+      case TicketStatus.inProgress: return const Color(0xFF3B82F6);
+      case TicketStatus.pendingUnassign: return const Color(0xFF60A5FA);
+      case TicketStatus.done: return const Color(0xFF10B981);
+      case TicketStatus.cancelled: return const Color(0xFF6B7280);
     }
   }
 }
@@ -927,7 +1076,7 @@ class _CommentCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(color: AppTheme.bgSubtle(context), borderRadius: BorderRadius.circular(8)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -938,10 +1087,10 @@ class _CommentCard extends StatelessWidget {
               Row(
                 children: [
                   if (comment.isEdited) const Text('(edited) ', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-                  Text('${comment.createdAt.day}/${comment.createdAt.month}/${comment.createdAt.year}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  Text('${comment.createdAt.day}/${comment.createdAt.month}/${comment.createdAt.year}', style: TextStyle(fontSize: 12, color: AppTheme.textSubtle(context))),
                   if (isOwnComment) ...[
                     const SizedBox(width: 8),
-                    GestureDetector(onTap: onEdit, child: Icon(Icons.edit, size: 16, color: Colors.grey[600])),
+                    GestureDetector(onTap: onEdit, child: Icon(Icons.edit, size: 16, color: AppTheme.textSubtle(context))),
                     const SizedBox(width: 4),
                     GestureDetector(onTap: onDelete, child: const Icon(Icons.delete, size: 16, color: Colors.red)),
                   ],

@@ -84,7 +84,7 @@ class DashboardHelpdeskWidget extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFF97316).withOpacity(0.1),
+                color: const Color(0xFF000072).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
@@ -92,7 +92,7 @@ class DashboardHelpdeskWidget extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFFF97316),
+                  color: Color(0xFF000072),
                 ),
               ),
             ),
@@ -195,7 +195,7 @@ class DashboardHelpdeskWidget extends ConsumerWidget {
                             title: 'Assigned',
                             value: open.toString(),
                             icon: Icons.assignment_ind,
-                            color: const Color(0xFFF97316),
+                            color: const Color(0xFF000072),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -204,7 +204,7 @@ class DashboardHelpdeskWidget extends ConsumerWidget {
                             title: 'In Progress',
                             value: inProgress.toString(),
                             icon: Icons.pending_actions,
-                            color: const Color(0xFF3B82F6),
+                            color: const Color(0xFF1E40AF),
                           ),
                         ),
                       ],
@@ -217,7 +217,7 @@ class DashboardHelpdeskWidget extends ConsumerWidget {
                             title: 'Pending',
                             value: pending.toString(),
                             icon: Icons.hourglass_empty,
-                            color: const Color(0xFFA855F7),
+                            color: const Color(0xFF3B82F6),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -226,7 +226,7 @@ class DashboardHelpdeskWidget extends ConsumerWidget {
                             title: 'Done',
                             value: done.toString(),
                             icon: Icons.task_alt,
-                            color: const Color(0xFF10B981),
+                            color: const Color(0xFF60A5FA),
                           ),
                         ),
                       ],

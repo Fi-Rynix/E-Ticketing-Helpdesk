@@ -13,6 +13,7 @@ class AppConstants {
   static const String routeCreateTicket = '/create_ticket';
   static const String routeEditTicket = '/edit_ticket';
   static const String routeUserManagement = '/user_management';
+  static const String routeSettings = '/settings';
   static const String routeTrackingTicket = '/tracking_ticket';
   static const String routeNotification = '/notification';
 

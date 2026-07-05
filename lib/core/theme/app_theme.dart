@@ -37,6 +37,28 @@ class AppTheme {
   static const Color neutral800 = Color(0xFF262626);
   static const Color neutral900 = Color(0xFF171717);
 
+  /// Theme-aware color helpers — use these instead of Colors.grey[xxx]
+  /// so dark mode renders correctly.
+  static Color bgSubtle(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF2A2A2A)
+          : const Color(0xFFF5F5F5);
+
+  static Color textSubtle(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFFB0B0B0)
+          : const Color(0xFF6B6B6B);
+
+  static Color textMuted(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF808080)
+          : const Color(0xFF9E9E9E);
+
+  static Color dividerSubtle(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF3A3A3A)
+          : const Color(0xFFE5E5E5);
+
   // Light Theme - Neo Minimalist
   static final ThemeData lightTheme = ThemeData(
     useMaterial3: true,

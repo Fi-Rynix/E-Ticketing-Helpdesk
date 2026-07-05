@@ -12,6 +12,7 @@ import '../../features/ticket/data/models/ticket_model.dart';
 import '../../features/notification/presentation/pages/notification_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/user_management/presentation/pages/user_list_page.dart';
+import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/ticket/presentation/pages/tracking_ticket_page.dart';
 
 /// App Router class to handle all named routes and argument passing
@@ -93,6 +94,12 @@ class AppRouter {
           settings: settings,
         );
 
+      case AppConstants.routeSettings:
+        return MaterialPageRoute(
+          builder: (_) => const SettingsPage(),
+          settings: settings,
+        );
+
       case AppConstants.routeTrackingTicket:
         final ticket = settings.arguments as Ticket;
         return MaterialPageRoute(
@@ -129,6 +136,7 @@ class AppRouter {
       '/settings': (context) => const SettingsPage(),
       '/reset_password': (context) => const ResetPasswordScreen(),
       AppConstants.routeUserManagement: (context) => const UserListPage(),
+      AppConstants.routeSettings: (context) => const SettingsPage(),
       AppConstants.routeTrackingTicket: (context) {
         final ticket = ModalRoute.of(context)!.settings.arguments as Ticket;
         return TrackingTicketPage(ticket: ticket);
