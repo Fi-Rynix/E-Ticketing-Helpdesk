@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../../data/models/dashboard_model.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class DashboardAdminWidget extends ConsumerWidget {
   const DashboardAdminWidget({super.key});
@@ -67,7 +68,50 @@ class DashboardAdminWidget extends ConsumerWidget {
               'System overview & analytics',
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+
+            // Quick action: User Management
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: InkWell(
+                onTap: () => Navigator.of(context).pushNamed(AppConstants.routeUserManagement),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF000072).withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF000072).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.people_alt_outlined, color: Color(0xFF000072)),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Kelola Pengguna', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            SizedBox(height: 2),
+                            Text('Manage users, roles, & status', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, color: Colors.grey),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
 
             // Stats section
             dashboardStatsAsync.when(

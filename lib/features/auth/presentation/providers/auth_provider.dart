@@ -35,6 +35,36 @@ final logoutProvider = FutureProvider((ref) async {
   ref.read(currentUserProvider.notifier).state = null;
 });
 
+// Register credentials class
+class RegisterCredentials {
+  final String username;
+  final String email;
+  final String password;
+
+  RegisterCredentials({
+    required this.username,
+    required this.email,
+    required this.password,
+  });
+}
+
+// Provider untuk register
+final registerProvider = FutureProvider.family<AppUser?, RegisterCredentials>((ref, credentials) async {
+  final authRepo = ref.watch(authRepositoryProvider);
+  final user = await authRepo.register(
+    credentials.email,
+    credentials.password,
+    credentials.username,
+  );
+
+  if (user != null) {
+    // Auto-login setelah register
+    ref.read(currentUserProvider.notifier).state = user;
+  }
+
+  return user;
+});
+
 // Provider untuk check apakah user sudah login
 final isAuthenticatedProvider = Provider<bool>((ref) {
   final user = ref.watch(currentUserProvider);

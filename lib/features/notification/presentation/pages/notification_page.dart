@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Notification;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../ticket/presentation/pages/ticket_detail_page.dart';
+import '../../../ticket/presentation/providers/ticket_pagination.dart';
 import '../providers/notification_provider.dart';
+import '../providers/notification_pagination_provider.dart';
+import '../../data/models/notification_model.dart';
+import '../../../../shared/widgets/load_more_button.dart';
 
 class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
@@ -11,13 +15,18 @@ class NotificationPage extends ConsumerStatefulWidget {
   ConsumerState<NotificationPage> createState() => _NotificationPageState();
 }
 
-class _NotificationPageState extends ConsumerState<NotificationPage> with SingleTickerProviderStateMixin {
+class _NotificationPageState extends ConsumerState<NotificationPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    // Load first page after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(paginatedNotificationsProvider.notifier).loadFirstPage();
+    });
   }
 
   @override
@@ -34,12 +43,11 @@ class _NotificationPageState extends ConsumerState<NotificationPage> with Single
       return const Center(child: Text('Not authenticated'));
     }
 
-    final notificationsAsync = ref.watch(userNotificationsProvider(currentUser.idUser));
+    final paginationState = ref.watch(paginatedNotificationsProvider);
 
-    // Return body only (NO Scaffold, NO AppBar) - MainLayout provides those
     return Column(
       children: [
-        // TabBar (inside body, below MainLayout's AppBar)
+        // TabBar
         Material(
           color: const Color(0xFF000072),
           child: SafeArea(
@@ -76,63 +84,86 @@ class _NotificationPageState extends ConsumerState<NotificationPage> with Single
           child: TabBarView(
             controller: _tabController,
             children: [
-              // All notifications
-              notificationsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Center(child: Text('Error: $error')),
-                data: (notifications) {
-                  if (notifications.isEmpty) {
-                    return _emptyState();
-                  }
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(userNotificationsProvider(currentUser.idUser));
-                    },
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(8),
-                      itemCount: notifications.length,
-                      itemBuilder: (context, index) {
-                        final notification = notifications[index];
-                        return _NotificationCard(
-                          notification: notification,
-                          onTap: () => _handleNotificationTap(notification),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-              // Unread only
-              notificationsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Center(child: Text('Error: $error')),
-                data: (notifications) {
-                  final unread = notifications.where((n) => !n.isRead).toList();
-                  if (unread.isEmpty) {
-                    return _emptyState(message: 'No unread notifications');
-                  }
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(userNotificationsProvider(currentUser.idUser));
-                    },
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(8),
-                      itemCount: unread.length,
-                      itemBuilder: (context, index) {
-                        final notification = unread[index];
-                        return _NotificationCard(
-                          notification: notification,
-                          onTap: () => _handleNotificationTap(notification),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
+              _buildAllTab(paginationState),
+              _buildUnreadTab(paginationState),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAllTab(PaginationState<Notification> state) {
+    if (state.isLoading && state.items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (state.error != null && state.items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error: ${state.error}', style: const TextStyle(color: Colors.red)),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => ref.read(paginatedNotificationsProvider.notifier).refresh(),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state.items.isEmpty) {
+      return _emptyState(message: 'No notifications');
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(paginatedNotificationsProvider.notifier).refresh(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: state.items.length + 1,
+        itemBuilder: (context, index) {
+          if (index == state.items.length) {
+            return LoadMoreButton(
+              isLoading: state.isLoading,
+              hasMore: state.hasMore,
+              onPressed: () => ref.read(paginatedNotificationsProvider.notifier).loadMore(),
+              currentCount: state.items.length,
+            );
+          }
+          return _NotificationCard(
+            notification: state.items[index],
+            onTap: () => _handleNotificationTap(state.items[index]),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildUnreadTab(PaginationState<Notification> state) {
+    final unread = state.items.where((n) => !n.isRead).toList();
+
+    if (state.isLoading && state.items.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (unread.isEmpty) {
+      return _emptyState(message: 'No unread notifications');
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(paginatedNotificationsProvider.notifier).refresh(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(8),
+        itemCount: unread.length,
+        itemBuilder: (context, index) {
+          return _NotificationCard(
+            notification: unread[index],
+            onTap: () => _handleNotificationTap(unread[index]),
+          );
+        },
+      ),
     );
   }
 
@@ -149,13 +180,12 @@ class _NotificationPageState extends ConsumerState<NotificationPage> with Single
     );
   }
 
-  void _handleNotificationTap(notification) async {
+  void _handleNotificationTap(Notification notification) async {
     if (!notification.isRead) {
       final repo = ref.read(notificationRepositoryProvider);
       await repo.markAsRead(notification.idNotification);
-      if (mounted) {
-        ref.invalidate(userNotificationsProvider(ref.read(currentUserProvider)!.idUser));
-      }
+      ref.invalidate(paginatedNotificationsProvider);
+      ref.invalidate(userNotificationsProvider(ref.read(currentUserProvider)!.idUser));
     }
 
     if (notification.idTicket != null) {
@@ -164,17 +194,16 @@ class _NotificationPageState extends ConsumerState<NotificationPage> with Single
           builder: (context) => TicketDetailPage(ticketId: notification.idTicket!),
         ),
       );
-      if (mounted) {
-        ref.invalidate(userNotificationsProvider(ref.read(currentUserProvider)!.idUser));
-      }
+      ref.invalidate(paginatedNotificationsProvider);
     }
   }
 
   void _markAllAsRead(int idUser) async {
     final repo = ref.read(notificationRepositoryProvider);
     await repo.markAllAsRead(idUser);
+    ref.invalidate(paginatedNotificationsProvider);
+    ref.invalidate(userNotificationsProvider(idUser));
     if (mounted) {
-      ref.invalidate(userNotificationsProvider(idUser));
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('All notifications marked as read')),
       );
@@ -183,7 +212,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage> with Single
 }
 
 class _NotificationCard extends StatelessWidget {
-  final dynamic notification;
+  final Notification notification;
   final VoidCallback onTap;
 
   const _NotificationCard({
@@ -222,11 +251,7 @@ class _NotificationCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text(
-              notification.body,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(notification.body, maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 4),
             Text(
               _formatDate(notification.createdAt),
@@ -238,10 +263,7 @@ class _NotificationCard extends StatelessWidget {
             ? Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.blue,
-                ),
+                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.blue),
               )
             : null,
         onTap: onTap,
@@ -285,17 +307,10 @@ class _NotificationCard extends StatelessWidget {
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final diff = now.difference(date);
-
-    if (diff.inMinutes < 1) {
-      return 'Just now';
-    } else if (diff.inHours < 1) {
-      return '${diff.inMinutes}m ago';
-    } else if (diff.inDays < 1) {
-      return '${diff.inHours}h ago';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays}d ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

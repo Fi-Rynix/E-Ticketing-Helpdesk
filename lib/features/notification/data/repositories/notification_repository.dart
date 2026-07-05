@@ -4,18 +4,27 @@ import '../models/notification_model.dart';
 class NotificationRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
-  /// Get notifications for user
-  Future<List<Notification>> getNotifications(int idUser) async {
-    final response = await _client
-        .from('notifications')
-        .select()
-        .eq('id_user', idUser)
+  /// Get notifications for user with cursor-based pagination
+  Future<List<Notification>> getNotifications(int idUser, {DateTime? cursor, int limit = 20}) async {
+    final queryBuilder = _client.from('notifications').select().eq('id_user', idUser);
+    final filtered = cursor != null
+        ? queryBuilder.filter('created_at', 'lt', cursor.toIso8601String())
+        : queryBuilder;
+    final response = await filtered
         .order('created_at', ascending: false)
-        .limit(50);
-
+        .limit(limit);
     return (response as List)
         .map((json) => Notification.fromJson(json))
         .toList();
+  }
+
+  /// Count total notifications for user (for pagination counter)
+  Future<int> countNotifications(int idUser) async {
+    final response = await _client
+        .from('notifications')
+        .select('id_notification')
+        .eq('id_user', idUser);
+    return (response as List).length;
   }
 
   /// Mark notification as read

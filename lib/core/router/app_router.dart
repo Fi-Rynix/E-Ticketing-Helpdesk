@@ -8,8 +8,11 @@ import '../../features/dashboard/presentation/pages/main_layout.dart';
 import '../../features/ticket/presentation/pages/ticket_list_page.dart';
 import '../../features/ticket/presentation/pages/ticket_detail_page.dart';
 import '../../features/ticket/presentation/pages/create_ticket_page.dart';
+import '../../features/ticket/data/models/ticket_model.dart';
 import '../../features/notification/presentation/pages/notification_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/user_management/presentation/pages/user_list_page.dart';
+import '../../features/ticket/presentation/pages/tracking_ticket_page.dart';
 
 /// App Router class to handle all named routes and argument passing
 class AppRouter {
@@ -64,6 +67,13 @@ class AppRouter {
           builder: (_) => const CreateTicketPage(),
           settings: settings,
         );
+
+      case AppConstants.routeEditTicket:
+        final ticket = settings.arguments as Ticket;
+        return MaterialPageRoute(
+          builder: (_) => CreateTicketPage(ticket: ticket),
+          settings: settings,
+        );
       
       case AppConstants.routeNotification:
         return MaterialPageRoute(
@@ -74,6 +84,19 @@ class AppRouter {
       case '/settings':
         return MaterialPageRoute(
           builder: (_) => const SettingsPage(),
+          settings: settings,
+        );
+
+      case AppConstants.routeUserManagement:
+        return MaterialPageRoute(
+          builder: (_) => const UserListPage(),
+          settings: settings,
+        );
+
+      case AppConstants.routeTrackingTicket:
+        final ticket = settings.arguments as Ticket;
+        return MaterialPageRoute(
+          builder: (_) => TrackingTicketPage(ticket: ticket),
           settings: settings,
         );
       
@@ -98,9 +121,18 @@ class AppRouter {
       AppConstants.routeDashboard: (context) => const MainLayout(),
       AppConstants.routeTicketList: (context) => const TicketListPage(),
       AppConstants.routeCreateTicket: (context) => const CreateTicketPage(),
+      AppConstants.routeEditTicket: (context) {
+        final ticket = ModalRoute.of(context)!.settings.arguments as Ticket;
+        return CreateTicketPage(ticket: ticket);
+      },
       AppConstants.routeNotification: (context) => const NotificationPage(),
       '/settings': (context) => const SettingsPage(),
       '/reset_password': (context) => const ResetPasswordScreen(),
+      AppConstants.routeUserManagement: (context) => const UserListPage(),
+      AppConstants.routeTrackingTicket: (context) {
+        final ticket = ModalRoute.of(context)!.settings.arguments as Ticket;
+        return TrackingTicketPage(ticket: ticket);
+      },
     };
   }
 }

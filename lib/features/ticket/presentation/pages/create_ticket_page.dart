@@ -4,11 +4,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../data/models/ticket_model.dart';
 import '../providers/ticket_provider.dart';
 import 'camera_screen.dart';
 
 class CreateTicketPage extends ConsumerStatefulWidget {
-  const CreateTicketPage({super.key});
+  /// Optional ticket — if provided, page runs in EDIT mode
+  final Ticket? ticket;
+
+  const CreateTicketPage({super.key, this.ticket});
+
+  bool get isEditMode => ticket != null;
 
   @override
   ConsumerState<CreateTicketPage> createState() => _CreateTicketPageState();
@@ -19,6 +25,17 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
   final _descriptionController = TextEditingController();
   bool _isSubmitting = false;
   XFile? _attachedPhoto;
+  String? _existingPhotoUrl; // for edit mode — preserve URL if no new photo
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isEditMode) {
+      _titleController.text = widget.ticket!.title;
+      _descriptionController.text = widget.ticket!.description;
+      _existingPhotoUrl = widget.ticket!.photoPath;
+    }
+  }
 
   @override
   void dispose() {
@@ -47,8 +64,49 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
 
     try {
       final ticketRepo = ref.read(ticketRepositoryProvider);
-      
-      // Create ticket first (without photo)
+
+      // =============== EDIT MODE ===============
+      if (widget.isEditMode) {
+        final existing = widget.ticket!;
+
+        // Upload new photo if attached, otherwise keep existing URL
+        String? finalPhotoPath = _existingPhotoUrl;
+        if (_attachedPhoto != null) {
+          final uploaded = await ticketRepo.uploadPhoto(
+            existing.idTicket,
+            _attachedPhoto!.path,
+            _attachedPhoto!.name,
+          );
+          if (uploaded != null) finalPhotoPath = uploaded;
+        }
+
+        // Update ticket
+        final updated = await ticketRepo.updateTicket(
+          idTicket: existing.idTicket,
+          title: _titleController.text,
+          description: _descriptionController.text,
+          photoPath: finalPhotoPath,
+        );
+
+        if (!mounted) return;
+        if (updated != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Ticket #${existing.idTicket} updated')),
+          );
+          ref.invalidate(ticketDetailProvider(existing.idTicket));
+          ref.invalidate(userTicketsProvider(currentUser.idUser));
+          ref.invalidate(fetchAllTicketsProvider);
+          Navigator.pop(context, true); // return success
+        } else {
+          setState(() => _isSubmitting = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update ticket (status may have changed)')),
+          );
+        }
+        return;
+      }
+
+      // =============== CREATE MODE ===============
       final ticket = await ticketRepo.createTicket(
         title: _titleController.text,
         description: _descriptionController.text,
@@ -74,14 +132,12 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
             _attachedPhoto!.name,
           );
           if (photoPath != null) {
-            // Update ticket with photo path
             await ticketRepo.updateTicket(
               idTicket: ticket.idTicket,
               title: _titleController.text,
               description: _descriptionController.text,
               photoPath: photoPath,
             );
-            // Refresh to show new photo
             ref.invalidate(ticketDetailProvider(ticket.idTicket));
             ref.invalidate(userTicketsProvider(currentUser.idUser));
             ref.invalidate(fetchAllTicketsProvider);
@@ -97,11 +153,8 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Ticket #${ticket.idTicket} created successfully')),
         );
-        
-        // Refresh user tickets
         ref.invalidate(userTicketsProvider(currentUser.idUser));
-        
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       } else {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -165,9 +218,9 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Create Ticket',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          widget.isEditMode ? 'Edit Ticket #${widget.ticket!.idTicket}' : 'Create Ticket',
+          style: const TextStyle(color: Colors.white),
         ),
         centerTitle: true,
         backgroundColor: const Color(0xFF000072),
@@ -179,9 +232,9 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 16),
-            const Text(
-              'Report a New Issue',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              widget.isEditMode ? 'Edit Ticket Details' : 'Report a New Issue',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
 
@@ -213,7 +266,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
             ),
             const SizedBox(height: 20),
 
-            // Attached photo preview
+            // Attached photo preview (newly captured)
             if (_attachedPhoto != null) ...[
               const Text('Attached Photo', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -252,11 +305,40 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
               const SizedBox(height: 20),
             ],
 
+            // Existing photo (edit mode only, shown when no new photo picked)
+            if (widget.isEditMode &&
+                _attachedPhoto == null &&
+                _existingPhotoUrl != null &&
+                _existingPhotoUrl!.isNotEmpty) ...[
+              const Text('Current Photo', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    _existingPhotoUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const Center(child: Icon(Icons.broken_image, size: 48, color: Colors.grey)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
             // Camera button
             ElevatedButton.icon(
               onPressed: _isSubmitting ? null : _handleCameraPermission,
               icon: const Icon(Icons.camera_alt),
-              label: Text(_attachedPhoto != null ? 'Change Photo' : 'Attach Photo (Camera)'),
+              label: Text(_attachedPhoto != null
+                  ? 'Change Photo'
+                  : (widget.isEditMode ? 'Replace Photo (Camera)' : 'Attach Photo (Camera)')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[700],
               ),
@@ -272,7 +354,7 @@ class _CreateTicketPageState extends ConsumerState<CreateTicketPage> {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Create Ticket'),
+                  : Text(widget.isEditMode ? 'Update Ticket' : 'Create Ticket'),
             ),
             const SizedBox(height: 12),
 

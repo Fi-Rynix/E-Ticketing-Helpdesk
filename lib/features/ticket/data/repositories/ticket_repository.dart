@@ -5,59 +5,77 @@ import '../models/ticket_model.dart';
 class TicketRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
-  /// Get all tickets (for admin)
-  Future<List<Ticket>> getAllTickets() async {
-    final response = await _client
-        .from('tickets')
-        .select()
+  /// Get all tickets (for admin) with cursor-based pagination
+  Future<List<Ticket>> getAllTickets({DateTime? cursor, int limit = 20}) async {
+    final queryBuilder = _client.from('tickets').select();
+    final filtered = cursor != null
+        ? queryBuilder.filter('created_at', 'lt', cursor.toIso8601String())
+        : queryBuilder;
+    final response = await filtered
         .order('created_at', ascending: false)
-        .limit(50);
-
+        .limit(limit);
     return (response as List)
         .map((json) => Ticket.fromJson(json))
         .toList();
   }
 
-  /// Get tickets by user ID
-  Future<List<Ticket>> getTicketsByUser(int idUser) async {
-    final response = await _client
-        .from('tickets')
-        .select()
-        .eq('id_user', idUser)
+  /// Get tickets by user ID with pagination
+  Future<List<Ticket>> getTicketsByUser(int idUser, {DateTime? cursor, int limit = 20}) async {
+    final queryBuilder = _client.from('tickets').select().eq('id_user', idUser);
+    final filtered = cursor != null
+        ? queryBuilder.filter('created_at', 'lt', cursor.toIso8601String())
+        : queryBuilder;
+    final response = await filtered
         .order('created_at', ascending: false)
-        .limit(50);
-
+        .limit(limit);
     return (response as List)
         .map((json) => Ticket.fromJson(json))
         .toList();
   }
 
-  /// Get tickets assigned to helpdesk
-  Future<List<Ticket>> getTicketsByHelpdesk(int idHelpdesk) async {
-    final response = await _client
-        .from('tickets')
-        .select()
-        .eq('id_helpdesk', idHelpdesk)
+  /// Get tickets assigned to helpdesk with pagination
+  Future<List<Ticket>> getTicketsByHelpdesk(int idHelpdesk, {DateTime? cursor, int limit = 20}) async {
+    final queryBuilder = _client.from('tickets').select().eq('id_helpdesk', idHelpdesk);
+    final filtered = cursor != null
+        ? queryBuilder.filter('created_at', 'lt', cursor.toIso8601String())
+        : queryBuilder;
+    final response = await filtered
         .order('created_at', ascending: false)
-        .limit(50);
-
+        .limit(limit);
     return (response as List)
         .map((json) => Ticket.fromJson(json))
         .toList();
   }
 
-  /// Get tickets by status
-  Future<List<Ticket>> getTicketsByStatus(String status) async {
-    final response = await _client
-        .from('tickets')
-        .select()
-        .eq('status', status)
+  /// Get tickets by status with pagination
+  Future<List<Ticket>> getTicketsByStatus(String status, {DateTime? cursor, int limit = 20}) async {
+    final queryBuilder = _client.from('tickets').select().eq('status', status);
+    final filtered = cursor != null
+        ? queryBuilder.filter('created_at', 'lt', cursor.toIso8601String())
+        : queryBuilder;
+    final response = await filtered
         .order('created_at', ascending: false)
-        .limit(50);
-
+        .limit(limit);
     return (response as List)
         .map((json) => Ticket.fromJson(json))
         .toList();
+  }
+
+  /// Count total tickets (for pagination counter)
+  Future<int> countAllTickets() async {
+    final response = await _client
+        .from('tickets')
+        .select('id_ticket');
+    return (response as List).length;
+  }
+
+  /// Count tickets by user
+  Future<int> countTicketsByUser(int idUser) async {
+    final response = await _client
+        .from('tickets')
+        .select('id_ticket')
+        .eq('id_user', idUser);
+    return (response as List).length;
   }
 
   /// Get ticket by ID

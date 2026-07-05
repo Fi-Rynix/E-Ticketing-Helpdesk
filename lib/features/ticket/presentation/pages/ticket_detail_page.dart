@@ -11,6 +11,8 @@ import '../../data/repositories/helpdesk_repository.dart';
 import '../providers/ticket_provider.dart';
 import '../providers/comment_provider.dart';
 import '../providers/helpdesk_provider.dart';
+import 'create_ticket_page.dart';
+import '../../../../core/constants/app_constants.dart';
 
 class TicketDetailPage extends ConsumerStatefulWidget {
   final int ticketId;
@@ -27,8 +29,9 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   String? _creatorName;
   String? _helpdeskName;
   bool _isSubmittingComment = false;
-  File? _attachedImage;
+  List<File> _attachedImages = []; // Changed: List instead of single File
   final _imagePicker = ImagePicker();
+  static const int _maxAttachments = 3; // Maximum attachments per comment
 
   @override
   void initState() {
@@ -61,16 +64,37 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
   }
 
   Future<void> _pickImage() async {
+    // Validate max limit before opening picker
+    if (_attachedImages.length >= _maxAttachments) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Maksimal $_maxAttachments foto per komentar')),
+      );
+      return;
+    }
+
     try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
+      // Use pickMultiImage for multiple selection
+      final List<XFile> images = await _imagePicker.pickMultiImage(
         maxWidth: 1024,
         maxHeight: 1024,
         imageQuality: 80,
       );
-      if (image != null) {
-        setState(() => _attachedImage = File(image.path));
+
+      if (images.isEmpty) return;
+
+      // Calculate how many we can still add
+      final remaining = _maxAttachments - _attachedImages.length;
+      final toAdd = images.take(remaining).map((x) => File(x.path)).toList();
+
+      if (toAdd.length < images.length) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Hanya ${toAdd.length} foto yang ditambahkan (max $_maxAttachments)')),
+        );
       }
+
+      setState(() {
+        _attachedImages = [..._attachedImages, ...toAdd];
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,12 +104,14 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
     }
   }
 
-  void _removeImage() {
-    setState(() => _attachedImage = null);
+  void _removeImageAt(int index) {
+    setState(() {
+      _attachedImages = List.from(_attachedImages)..removeAt(index);
+    });
   }
 
   void _addComment(int idTicket, int? idUser) async {
-    if (_commentController.text.isEmpty && _attachedImage == null) {
+    if (_commentController.text.isEmpty && _attachedImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a message or attach an image')),
       );
@@ -104,21 +130,28 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
         message: _commentController.text.isEmpty ? '(image)' : _commentController.text,
       );
 
-      // Upload image if attached
-      if (comment != null && _attachedImage != null) {
-        final fileSize = await _attachedImage!.length();
-        await _commentRepo.uploadAttachment(
-          idComment: comment.idComment,
-          filePath: _attachedImage!.path,
-          mimeType: 'image/jpeg',
-          fileSize: fileSize,
-        );
+      // Upload all attached images
+      if (comment != null && _attachedImages.isNotEmpty) {
+        for (final image in _attachedImages) {
+          try {
+            final fileSize = await image.length();
+            await _commentRepo.uploadAttachment(
+              idComment: comment.idComment,
+              filePath: image.path,
+              mimeType: 'image/jpeg',
+              fileSize: fileSize,
+            );
+          } catch (e) {
+            print('Failed to upload attachment: $e');
+            // Continue with other uploads
+          }
+        }
       }
 
       // Clear inputs
       _commentController.clear();
       setState(() {
-        _attachedImage = null;
+        _attachedImages = [];
         _isSubmittingComment = false;
       });
 
@@ -259,6 +292,21 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(ticket.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+
+                // Tracking button
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).pushNamed(
+                    AppConstants.routeTrackingTicket,
+                    arguments: ticket,
+                  ),
+                  icon: const Icon(Icons.history, size: 18),
+                  label: const Text('Lihat Tracking Lengkap'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF000072),
+                    side: const BorderSide(color: Color(0xFF000072)),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _SectionCard(title: 'Description', child: Text(ticket.description)),
                 const SizedBox(height: 16),
@@ -344,7 +392,7 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                 ),
 
                 const SizedBox(height: 16),
-                
+
                 // Comment input with image attachment
                 TextField(
                   controller: _commentController,
@@ -352,49 +400,85 @@ class _TicketDetailPageState extends ConsumerState<TicketDetailPage> {
                   decoration: const InputDecoration(hintText: 'Add a comment...', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 8),
-                
-                // Image attachment preview
-                if (_attachedImage != null)
-                  Stack(
+
+                // Image attachment preview (multiple, max 3)
+                if (_attachedImages.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          image: DecorationImage(image: FileImage(_attachedImage!), fit: BoxFit.cover),
-                        ),
+                      Text(
+                        'Lampiran (${_attachedImages.length}/$_maxAttachments)',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey),
                       ),
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: GestureDetector(
-                          onTap: _removeImage,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                            child: const Icon(Icons.close, color: Colors.white, size: 16),
-                          ),
+                      if (_attachedImages.length >= _maxAttachments)
+                        const Text(
+                          'MAX tercapai',
+                          style: TextStyle(fontSize: 11, color: Colors.red, fontWeight: FontWeight.w600),
                         ),
-                      ),
                     ],
                   ),
-                
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 90,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _attachedImages.length,
+                      itemBuilder: (_, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  _attachedImages[index],
+                                  width: 90,
+                                  height: 90,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: GestureDetector(
+                                  onTap: () => _removeImageAt(index),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                    child: const Icon(Icons.close, color: Colors.white, size: 14),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+
                 // Action buttons
                 Row(
                   children: [
                     IconButton(
-                      onPressed: _pickImage,
+                      onPressed: _attachedImages.length >= _maxAttachments ? null : _pickImage,
                       icon: const Icon(Icons.image),
-                      tooltip: 'Attach image',
+                      tooltip: _attachedImages.length >= _maxAttachments
+                          ? 'Maks $_maxAttachments foto tercapai'
+                          : 'Attach image (max $_maxAttachments)',
                     ),
+                    if (_attachedImages.isNotEmpty)
+                      Text(
+                        '${_attachedImages.length}/$_maxAttachments',
+                        style: TextStyle(fontSize: 12, color: _attachedImages.length >= _maxAttachments ? Colors.red : Colors.grey),
+                      ),
                     const Spacer(),
                     ElevatedButton(
-                      onPressed: _isSubmittingComment 
-                          ? null 
+                      onPressed: _isSubmittingComment
+                          ? null
                           : () => _addComment(ticket.idTicket, currentUser?.idUser),
-                      child: _isSubmittingComment 
+                      child: _isSubmittingComment
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Text('Post Comment'),
                     ),
@@ -762,11 +846,32 @@ class _UserActionsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       children: [
-        Expanded(child: OutlinedButton(
-          onPressed: () => _showCancelDialog(context, ref),
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-          child: const Text('Cancel Ticket'),
-        )),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final result = await Navigator.of(context).pushNamed(
+                AppConstants.routeEditTicket,
+                arguments: ticket,
+              );
+              if (result == true && context.mounted) {
+                // TicketDetailPage will auto-refresh via provider invalidate
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ticket updated')),
+                );
+              }
+            },
+            icon: const Icon(Icons.edit, size: 18),
+            label: const Text('Edit'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => _showCancelDialog(context, ref),
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Cancel Ticket'),
+          ),
+        ),
       ],
     );
   }

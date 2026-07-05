@@ -50,6 +50,37 @@ class AuthRepository {
     await _client.auth.signOut();
   }
 
+  /// Reset password - kirim email dengan link reset ke user
+  /// Returns true jika berhasil (email valid), false jika gagal
+  Future<bool> resetPassword(String email) async {
+    try {
+      await _client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'utsmobile://reset-callback',
+      );
+      return true;
+    } on AuthException catch (e) {
+      print('Reset password error: ${e.message}');
+      return false;
+    } catch (e) {
+      print('Unexpected error: $e');
+      return false;
+    }
+  }
+
+  /// Update password untuk user yang sedang login (setelah klik link reset)
+  Future<bool> updatePassword(String newPassword) async {
+    try {
+      final response = await _client.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+      return response.user != null;
+    } catch (e) {
+      print('Update password error: $e');
+      return false;
+    }
+  }
+
   /// Get current session
   Session? get currentSession => _client.auth.currentSession;
 

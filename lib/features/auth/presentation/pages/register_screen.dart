@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -48,22 +49,66 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
+    // Email validation
+    final email = _emailController.text.trim();
+    if (!email.contains('@') || !email.contains('.')) {
+      setState(() => _errorMessage = 'Please enter a valid email address');
+      return;
+    }
+
+    // Username min 3 chars (SRS FR-003 requirement)
+    if (_usernameController.text.trim().length < 3) {
+      setState(() => _errorMessage = 'Username must be at least 3 characters');
+      return;
+    }
+
+    // Password length validation (Supabase requires min 6 chars)
+    if (_passwordController.text.length < 6) {
+      setState(() => _errorMessage = 'Password must be at least 6 characters');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    // Simulate registration - in real app, call API
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final credentials = RegisterCredentials(
+        username: _usernameController.text.trim(),
+        email: email,
+        password: _passwordController.text,
+      );
 
-    if (!mounted) return;
+      final user = await ref.read(registerProvider(credentials).future);
 
-    setState(() => _isLoading = false);
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registration successful!')),
-    );
-    Navigator.of(context).pop();
+      if (user != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Welcome.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        // Navigate to dashboard, replacing entire stack
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/dashboard',
+          (route) => false,
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Registration failed. Email may already be in use.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'An error occurred: $e';
+      });
+    }
   }
 
   @override

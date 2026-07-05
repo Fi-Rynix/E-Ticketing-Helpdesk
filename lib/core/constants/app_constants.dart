@@ -11,6 +11,9 @@ class AppConstants {
   static const String routeTicketList = '/tickets';
   static const String routeTicketDetail = '/ticket_detail';
   static const String routeCreateTicket = '/create_ticket';
+  static const String routeEditTicket = '/edit_ticket';
+  static const String routeUserManagement = '/user_management';
+  static const String routeTrackingTicket = '/tracking_ticket';
   static const String routeNotification = '/notification';
 
   // Status

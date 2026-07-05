@@ -2,23 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/auth_provider.dart';
 
-class SplashScreen extends ConsumerWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isAuthenticated = ref.watch(isAuthenticatedProvider);
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
+}
 
-    // Navigate setelah 2 detik
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!context.mounted) return;
+class _SplashScreenState extends ConsumerState<SplashScreen> {
+  bool _navigated = false;
 
-      if (isAuthenticated) {
+  void _navigateAfterInit() {
+    if (_navigated) return;
+    _navigated = true;
+
+    // Wait minimal splash time (1.5s) for branding
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
         Navigator.of(context).pushReplacementNamed('/dashboard');
       } else {
         Navigator.of(context).pushReplacementNamed('/login');
       }
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Listen to auth init — when done, navigate
+    ref.listen<AsyncValue<dynamic>>(initAuthProvider, (previous, next) {
+      next.whenData((_) => _navigateAfterInit());
+    });
+
+    // Trigger init on first build
+    ref.read(initAuthProvider);
 
     return Scaffold(
       body: Center(
