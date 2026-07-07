@@ -28,9 +28,12 @@ jobs:
 
       - run: flutter build apk --release
 
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk E-Ticketing-Helpdesk-v1.0.3.apk
+
       - name: Upload APK
         uses: softprops/action-gh-release@v1
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: E-Ticketing-Helpdesk-v1.0.3.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
