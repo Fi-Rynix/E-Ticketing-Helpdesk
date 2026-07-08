@@ -23,8 +23,8 @@ jobs:
 
       - name: Create .env for build
         run: |
-          echo "SUPABASE_URL=https://placeholder.supabase.co" > .env
-          echo "SUPABASE_ANON_KEY=placeholder_key" >> .env
+          echo "SUPABASE_URL=https://brkylvdfffjmfaiebgcf.supabase.co" > .env
+          echo "SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJya3lsdmRmZmZqbWZhaWViZ2NmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MzM3MDUsImV4cCI6MjA5NTAwOTcwNX0.UTXReSb48dVksnDuTE1YAMEaNlrAJTfT8tWRmTMjTy8" >> .env
 
       - run: flutter build apk --release
 
